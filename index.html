@@ -1,1 +1,259 @@
-Initial version
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+    <title>歷史系圖書查詢系統</title>
+    
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    
+    <script src="data/db.js"></script>
+
+    <style>
+        /* 僅保留少數自訂樣式，大部分由 Vuetify 接管 */
+        .pointer-link {
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-color: transparent;
+            transition: text-decoration-color 0.2s;
+        }
+        .pointer-link:hover {
+            text-decoration-color: currentColor;
+        }
+        /* 讓表格列在懸停時顯示為可點擊 */
+        .v-data-table tbody tr {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <v-app>
+        <v-app-bar app color="blue-grey darken-3" dark>
+            <v-toolbar-title>歷史系圖書資料庫</v-toolbar-title>
+        </v-app-bar>
+
+        <v-main class="grey lighten-4">
+            <v-container>
+                <v-card class="pa-4 mt-4" elevation="2">
+                    
+                    <v-text-field
+                        v-model="searchQuery"
+                        append-icon="mdi-magnify"
+                        label="請輸入書名或作者關鍵字..."
+                        single-line
+                        hide-details
+                        class="mb-4"
+                        outlined
+                        dense
+                    ></v-text-field>
+
+                    <v-data-table
+                        :headers="headers"
+                        :items="books"
+                        :search="searchQuery"
+                        :custom-filter="customFilter"
+                        :items-per-page="10"
+                        :loading="isLoading"
+                        loading-text="資料載入中... 請稍候"
+                        no-data-text="目前沒有資料"
+                        no-results-text="查無符合條件的圖書"
+                        class="elevation-1"
+                        @click:row="openModal"
+                    >
+                        <template v-slot:footer.page-text="items">
+                            {{ items.pageStart }} - {{ items.pageStop }} 筆 / 共 {{ items.itemsLength }} 筆
+                        </template>
+                    </v-data-table>
+                </v-card>
+            </v-container>
+        </v-main>
+
+        <v-overlay :value="isLoading" z-index="9999">
+            <div class="text-center">
+                <v-progress-circular indeterminate size="64" color="primary"></v-progress-circular>
+                <div class="mt-4 text-h6">正在同步圖書資料... ({{ progressCount }} / 47304)</div>
+            </div>
+        </v-overlay>
+
+        <v-dialog v-model="isModalOpen" max-width="500">
+            <v-card v-if="selectedBook">
+                <v-card-title class="text-h6 blue-grey lighten-5">
+                    書籍詳細資料
+                    <v-spacer></v-spacer>
+                    <v-btn icon @click="closeModal">
+                        <v-icon>mdi-close</v-icon>
+                    </v-btn>
+                </v-card-title>
+                
+                <v-card-text class="pt-4">
+                    <v-row v-for="(value, key) in selectedBook" :key="key" class="mb-1 align-center">
+                        <v-col cols="4" class="font-weight-bold blue-grey--text text--darken-2">
+                            {{ formatKey(key) }}
+                        </v-col>
+                        <v-col cols="8" class="text-body-1 text-break">
+                            <span 
+                                :class="{'primary--text font-weight-bold pointer-link': isSearchableField(key) && value}"
+                                @click="handleDetailClick(key, value)"
+                            >
+                                {{ value || '-' }}
+                            </span>
+                        </v-col>
+                    </v-row>
+                </v-card-text>
+                
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="primary" text @click="closeModal">關閉</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+    </v-app>
+</div>
+
+<script>
+    new Vue({
+        el: '#app',
+        // 宣告使用 Vuetify
+        vuetify: new Vuetify(),
+        data: {
+            isLoading: true,
+            progressCount: 0,
+            searchQuery: '',
+            books: [],
+            
+            // Vuetify 表格的標題設定
+            headers: [
+                { text: '索書號', value: 'tno', sortable: false },
+                { text: '書名', value: 'book_name', sortable: false },
+                { text: '作者', value: 'author', sortable: false },
+                { text: '館藏位置', value: 'room', sortable: false }
+            ],
+            
+            isModalOpen: false,
+            selectedBook: null,
+            fieldLabels: {
+                tno: '索書號', book_name: '書名', author: '作者', room: '館藏位置',
+                publish: '出版社', year: '出版年份', isbn: 'ISBN', series: '叢書名',
+                cat: '分類號'
+            },
+            
+            ws: null
+        },
+        async created() {
+            await initLibraryDB((count) => {
+                this.progressCount = count;
+            });
+            await this.initAndLoad();
+            // this.initWebSocket(); // 預留給後續 WebSocket 測試
+        },
+        beforeDestroy() {
+            if (this.ws) {
+                this.ws.close();
+            }
+        },
+        methods: {
+            // --- 資料庫邏輯 (不變) ---
+            async initAndLoad() {
+                try {
+                    const db = await this.openDB();
+                    await this.loadData(db);
+                    this.isLoading = false;
+                } catch (err) {
+                    console.error("初始化失敗:", err);
+                    this.isLoading = false;
+                }
+            },
+            openDB() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME, { keyPath: 'tno' });
+                        }
+                    };
+                    request.onsuccess = (e) => resolve(e.target.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+            loadData(db) {
+                return new Promise((resolve) => {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const getAll = store.getAll();
+                    getAll.onsuccess = () => {
+                        this.books = getAll.result || [];
+                        resolve();
+                    };
+                });
+            },
+
+            // --- UI 互動邏輯 ---
+            // 自訂過濾規則：限定只搜尋書名與作者，符合你原本的邏輯
+            customFilter(value, search, item) {
+                if (!search) return true;
+                const query = search.toLowerCase();
+                const bookName = (item.book_name || "").toLowerCase();
+                const author = (item.author || "").toLowerCase();
+                return bookName.includes(query) || author.includes(query);
+            },
+            openModal(item) {
+                // Vuetify 的 @click:row 會傳入該列的資料物件 (item)
+                this.selectedBook = item;
+                this.isModalOpen = true;
+            },
+            closeModal() {
+                this.isModalOpen = false;
+                // 延遲清空資料，避免對話框關閉動畫進行中發生閃爍
+                setTimeout(() => {
+                    this.selectedBook = null;
+                }, 300);
+            },
+            formatKey(key) {
+                return this.fieldLabels[key] || key;
+            },
+            isSearchableField(key) {
+                return key === 'book_name' || key === 'author';
+            },
+            handleDetailClick(key, value) {
+                if (this.isSearchableField(key) && value) {
+                    this.searchQuery = value;
+                    this.closeModal();
+                }
+            },
+
+            // --- WebSocket 相關方法 (不變) ---
+            initWebSocket() {
+                const wsUrl = 'ws://localhost:8080/ws'; 
+                try {
+                    this.ws = new WebSocket(wsUrl);
+                    this.ws.onopen = () => console.log('WebSocket 連線已成功建立');
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            this.processRealTimeData(data);
+                        } catch (e) {
+                            console.error('解析 WebSocket 資料失敗:', e);
+                        }
+                    };
+                    this.ws.onerror = (error) => console.error('WebSocket 發生錯誤:', error);
+                    this.ws.onclose = () => console.log('WebSocket 連線已關閉');
+                } catch (err) {
+                    console.error('建立 WebSocket 連線失敗:', err);
+                }
+            },
+            processRealTimeData(data) {
+                console.log('接收到即時資料:', data);
+            }
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+body
+{ 
+    background-color:#fff;
+    margin:0px;
+    margin-left:20px;
+    font-size:14px
+	text-align:center;
+    width:98%;
+}
+img {border-width:0;}
+
+.MMType 
+{
+	padding-left:0px;
+	padding-right:0px;
+	padding-top:10px;
+	padding-bottom:10px;
+    border-style:solid;
+    border-width:0 0 4px 0;
+    background-color:#369;
+    left:0px;
+    top:60px;
+	height:30px;
+}
+
+div#toolbartitle,
+div#footer,
+.longpage
+{
+	border:0px dashed #000;
+    padding-top:10px;
+	padding-left:10px;
+	padding-right:0px;
+    padding-bottom:10px;
+}
+
+div#freeze,
+div#maintain,
+div#record,
+div#newbook,
+div#unreturn,
+div#useradd,
+div#userdel,
+div#userlist,
+div#result,
+div#rules {
+    background-color:#eee!important;
+	padding:10px;
+}
+
+div.report {
+    background-color:#eee;
+    padding:0;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+div.report table {
+    margin-left:auto;
+    margin-right:auto;
+}
+
+div.fform {
+    background-color:#eee;
+    padding:10px;
+}
+
+div.fform table {
+    padding:0 0 10px 10px;
+}
+
+div.fbody {
+    background-color:#eee;
+    padding:10px;
+}
+
+div.fbody table {
+    border-collapse:collapse;
+    margin:0;
+    width:100%;
+}
+
+div.fbody td {
+	padding-left:5px;
+}
+
+div form
+{
+    background-color:#eee;
+}
+
+div#result td
+{
+	padding:8px;
+}
+
+div#footer
+{
+	margin-top:10px;
+	border-style:solid!important;
+	border-color:#000!important;
+	border-width:4px 0 0 0!important;
+	text-align:center;
+}
+
+div#footer table
+{
+	width:600px;
+	text-align:center;
+	margin-top:10px;
+	
+	
+}
+
+h1 {
+    font-family:標楷體;
+    font-size:32px!important;
+}
+
+a,
+a:link,
+a:visited
+{
+    text-decoration:none;
+    color:#000000;
+}
+
+.list_item
+{
+	color:#000;
+	text-align:center;
+	padding:8px;
+}
+
+.menu_item
+{
+	background:#3ec;
+	color:#fff;
+	text-align:center;
+	padding:8px;
+}
+
+.longpage
+{
+	background-color:#eee;
+}
+
+div#title
+{
+	width:95%;
+    padding-top:10px;
+    padding-bottom:10px;
+    padding-left:10px;
+    font-size:32px;
+    color:#000;
+    background-color:#fff;
+    font-family:標楷體;
+}
+
+.confirm
+{
+	background-color:#fff;
+	padding-top:10px;
+	padding-left:10px;
+}
+
+.status_table
+{ 
+    background-color:#369;
+    width:80%;
+    margin-top:30px;
+    
+    
+}
+
+.status_table td
+{
+    background-color:#fff;
+}
+
+.menu_item
+{
+    background-color:#369!important;
+    padding:5px;
+    color:#fff;
+}
+
+.menu_title
+{
+    text-align:center;
+}
+
+.list_item
+{
+}
+
+.list_center
+{
+    text-align:center;
+}
+
+.MainStyle
+{
+    font-size:16px;
+    color:#fff;
+    cursor:hand;
+}
+
+.MainStyle a:link {
+    color:#fff;
+}
+
+.MainStyle a:visited {
+    color:#fff;
+}
+
+.SubStyle
+{
+    position:absolute;
+    border-style:solid;
+    border-width:2px;
+    border-color:#369;
+    background-color:#369;
+    top:80px;
+    visibility:hidden;
+}
+
+.SubStyle a:link
+{
+    color:#fff;
+}
+
+.SubStyle a:visited
+{
+    color:#fff;
+}
+
+.SubStyle table
+{
+    height:30px;
+}
+
+.SubItem
+{
+    font-size:16px;
+    background-color:#EEEEEE;
+    color:#369;
+    cursor:hand;
+}
+
+.SubItemHover
+{
+    font-size:16px;
+    background-color:#000088;
+    color:#fff;
+    cursor:hand;
+}
+
+.report_info
+{
+    height:400px;
+    background-color:#eee;
+}
+
+.report_info table
+{
+    width:100%;
+    
+    
+    text-align:center;
+}
+
+.report_error
+{
+    height:400px;
+    background-color:#eee;
+}
+
+.report_error table
+{
+    width:100%;
+    text-align:center;
+}
+
+.report_warning
+{
+    height:400px;
+    background-color:#eee;
+}
+
+.report_warning table
+{
+    width:100%;
+    text-align:center;
+}
+
+.calendar {
+}
+
+.cal_close
+{
+    background-color:#f5f;
+}
+
+.cal_holiday
+{
+    background-color:#f55;
+}
+
+th {
+    background-color:#6ca0d0;
+    border:2px solid #000;
+    color:#fff;
+    padding:5px;
+}
+
+tr.expired {
+    background-color:#eef;
+    color:#d93001;
+    font-weight:bold;
+}
+
+tr.a {background-color: #ddd;}
+tr.b {}
+tr.gap {border-width:2px 0px 0px 0px;border-style:dashed;border-color:#000000;}
+
+td.number {
+    text-align:right;
+    padding-right:5px;
+}
+
+td.expiredays {
+    text-align:right;
+    padding-right:5px;
+}
