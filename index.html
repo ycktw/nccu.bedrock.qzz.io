@@ -37,12 +37,36 @@
     <v-app>
         <v-app-bar app color="blue-grey darken-3" dark>
             <v-toolbar-title>歷史系圖書資料庫</v-toolbar-title>
+            
+            <v-spacer></v-spacer>
+
+            <v-btn 
+                v-if="!isLoggedIn" 
+                text 
+                color="grey" 
+                class="text-none"
+                @click="loginDialog = true"
+            >
+                <v-icon left small>mdi-lock-outline</v-icon>
+                系統管理
+            </v-btn>
+
+            <template v-else>
+                <span class="mr-4 text-body-2 grey--text text--lighten-1">已登入 (權限測試)</span>
+                <v-btn 
+                    outlined 
+                    color="red lighten-2" 
+                    small
+                    @click="logoutDialog = true"
+                >
+                    登出
+                </v-btn>
+            </template>
         </v-app-bar>
 
         <v-main class="grey lighten-4">
             <v-container>
                 <v-card class="pa-4 mt-4" elevation="2">
-                    
                     <v-text-field
                         v-model="searchQuery"
                         append-icon="mdi-magnify"
@@ -91,7 +115,6 @@
                         <v-icon>mdi-close</v-icon>
                     </v-btn>
                 </v-card-title>
-                
                 <v-card-text class="pt-4">
                     <v-row v-for="(value, key) in selectedBook" :key="key" class="mb-1 align-center">
                         <v-col cols="4" class="font-weight-bold blue-grey--text text--darken-2">
@@ -107,13 +130,60 @@
                         </v-col>
                     </v-row>
                 </v-card-text>
-                
                 <v-card-actions>
                     <v-btn color="primary" text @click="closeModal">關閉</v-btn>
                     <v-spacer></v-spacer>
                 </v-card-actions>
             </v-card>
         </v-dialog>
+
+        <v-dialog v-model="loginDialog" max-width="400" persistent>
+            <v-card>
+                <v-card-title class="text-h6 blue-grey darken-3 white--text">
+                    管理員登入
+                </v-card-title>
+                <v-card-text class="pt-6">
+                    <v-text-field
+                        v-model="loginForm.username"
+                        label="帳號"
+                        prepend-icon="mdi-account"
+                        outlined
+                        dense
+                    ></v-text-field>
+                    <v-text-field
+                        v-model="loginForm.password"
+                        label="密碼"
+                        type="password"
+                        prepend-icon="mdi-lock"
+                        outlined
+                        dense
+                        @keyup.enter="submitLogin"
+                    ></v-text-field>
+                </v-card-text>
+                <v-card-actions class="pb-4 px-4">
+                    <v-spacer></v-spacer>
+                    <v-btn text color="grey darken-1" @click="closeLoginDialog">取消</v-btn>
+                    <v-btn color="primary" :loading="isLoggingIn" @click="submitLogin">登入</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+
+        <v-dialog v-model="logoutDialog" max-width="350">
+            <v-card>
+                <v-card-title class="text-h6">
+                    確認登出
+                </v-card-title>
+                <v-card-text class="pt-2 text-body-1">
+                    您確定要登出系統管理嗎？
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn text color="grey darken-1" @click="logoutDialog = false">取消</v-btn>
+                    <v-btn color="error" @click="submitLogout">確認登出</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+
     </v-app>
 </div>
 
@@ -144,14 +214,38 @@
                 cat: '分類號'
             },
             
+            // --- 認證與授權相關狀態 ---
+            jwtToken: localStorage.getItem('lib_jwt') || null,
+            
+            // 登入對話框狀態
+            loginDialog: false,
+            isLoggingIn: false,
+            loginForm: {
+                username: '',
+                password: ''
+            },
+
+            // 登出對話框狀態
+            logoutDialog: false,
+
             ws: null
+        },
+        computed: {
+            // 利用 JWT Token 的有無來判斷是否已登入
+            isLoggedIn() {
+                return this.jwtToken !== null && this.jwtToken !== '';
+            }
         },
         async created() {
             await initLibraryDB((count) => {
                 this.progressCount = count;
             });
             await this.initAndLoad();
-            // this.initWebSocket(); // 預留給後續 WebSocket 測試
+            
+            // 如果已經有 JWT，可以考慮在這邊就建立安全的 WebSocket 連線
+            // if (this.isLoggedIn) {
+            //     this.initSecureWebSocket();
+            // }
         },
         beforeDestroy() {
             if (this.ws) {
@@ -229,12 +323,70 @@
                 }
             },
 
-            // --- WebSocket 相關方法 (不變) ---
-            initWebSocket() {
+            // --- 新增：登入與登出邏輯 ---
+            closeLoginDialog() {
+                this.loginDialog = false;
+                // 清空密碼，保留帳號方便使用者重新輸入
+                this.loginForm.password = ''; 
+            },
+            async submitLogin() {
+                if (!this.loginForm.username || !this.loginForm.password) return;
+                
+                this.isLoggingIn = true;
+
+                // 這裡預留給未來與 Go 伺服器的 HTTP POST 驗證
+                /*
+                try {
+                    const res = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.loginForm)
+                    });
+                    const data = await res.json();
+                    if (data.token) {
+                        this.jwtToken = data.token;
+                        localStorage.setItem('lib_jwt', data.token);
+                        // 取得 Token 後，建立帶有驗證資訊的 WebSocket
+                        this.initSecureWebSocket();
+                    }
+                } catch (err) { ... }
+                */
+
+                // 目前先用 setTimeout 模擬網路請求延遲與成功登入
+                setTimeout(() => {
+                    const mockToken = "mock_jwt_header.mock_jwt_payload.mock_jwt_signature";
+                    this.jwtToken = mockToken;
+                    localStorage.setItem('lib_jwt', mockToken);
+                    
+                    this.isLoggingIn = false;
+                    this.closeLoginDialog();
+                    // 登入成功後清空表單
+                    this.loginForm.username = '';
+                    this.loginForm.password = '';
+                }, 800);
+            },
+            submitLogout() {
+                // 清除 Token 與狀態
+                this.jwtToken = null;
+                localStorage.removeItem('lib_jwt');
+                
+                // 斷開 WebSocket 連線
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+                
+                this.logoutDialog = false;
+            },
+
+            // --- WebSocket 相關方法 ---
+            initSecureWebSocket() {
+                // 未來可以在這裡將 JWT 帶入連線參數，例如：
+                // const wsUrl = `ws://localhost:8080/ws?token=${this.jwtToken}`; 
                 const wsUrl = 'ws://localhost:8080/ws'; 
                 try {
                     this.ws = new WebSocket(wsUrl);
-                    this.ws.onopen = () => console.log('WebSocket 連線已成功建立');
+                    this.ws.onopen = () => console.log('WebSocket 安全連線已成功建立');
                     this.ws.onmessage = (event) => {
                         try {
                             const data = JSON.parse(event.data);
