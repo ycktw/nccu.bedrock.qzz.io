@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
-    <title>歷史系圖書查詢系統</title>
+    <title>政大歷史系圖書查詢系統</title>
     
     <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
@@ -11,7 +11,8 @@
     
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
-    
+    <script src="https://unpkg.com/vue-i18n@8/dist/vue-i18n.js"></script>
+    <script src="lang.js"></script>
     <script src="data/db.js"></script>
 
     <style>
@@ -34,9 +35,15 @@
 <div id="app">
     <v-app>
         <v-app-bar app color="blue-grey darken-3" dark>
-            <v-toolbar-title>歷史系圖書資料庫</v-toolbar-title>
+            <v-toolbar-title>{{ $t('appTitle') }}</v-toolbar-title>
             
             <v-spacer></v-spacer>
+
+            <v-btn-toggle v-model="currentLocale" mandatory dense class="mr-4" background-color="blue-grey darken-2" dark>
+                <v-btn value="zh-Hant" small>繁中</v-btn>
+                <v-btn value="en" small>EN</v-btn>
+								<v-btn value="ja" small>日</v-btn>
+            </v-btn-toggle>
 
             <v-btn 
                 v-if="!isLoggedIn" 
@@ -46,18 +53,18 @@
                 @click="loginDialog = true"
             >
                 <v-icon left small>mdi-lock-outline</v-icon>
-                系統管理
+                {{ $t('sysAdmin') }}
             </v-btn>
 
             <template v-else>
-                <span class="mr-4 text-body-2 grey--text text--lighten-1">已登入 (權限測試)</span>
+                <span class="mr-4 text-body-2 grey--text text--lighten-1">{{ $t('loggedInStatus') }}</span>
                 <v-btn 
                     outlined 
                     color="red lighten-2" 
                     small
                     @click="logoutDialog = true"
                 >
-                    登出
+                    {{ $t('logout') }}
                 </v-btn>
             </template>
         </v-app-bar>
@@ -68,7 +75,7 @@
                     <v-text-field
                         v-model="searchQuery"
                         clearable
-                        label="請輸入書名或作者關鍵字..."
+                        :label="$t('searchPlaceholder')"
                         single-line
                         hide-details
                         class="mb-4"
@@ -83,18 +90,18 @@
                         :page.sync="page"
                         @page-count="pageCount = $event"
                         :loading="isLoading"
-                        loading-text="資料載入中... 請稍候"
-                        no-data-text="目前沒有資料"
-                        no-results-text="查無符合條件的圖書"
+                        :loading-text="$t('loadingText')"
+                        :no-data-text="$t('noDataText')"
+                        :no-results-text="$t('noResultsText')"
                         class="elevation-1"
                         @click:row="openModal"
-												:footer-props="{
-                            'items-per-page-text': '每頁顯示筆數：',
-                            'items-per-page-all-text': '全部'
+                        :footer-props="{
+                            'items-per-page-text': $t('itemsPerPageText'),
+                            'items-per-page-all-text': $t('allText')
                         }"
                     >
                         <template v-slot:footer.page-text="items">
-                            {{ items.pageStart }} - {{ items.pageStop }} 筆 / 共 {{ items.itemsLength }} 筆
+                            {{ items.pageStart }} - {{ items.pageStop }} / {{ $t('totalText') }} {{ items.itemsLength }}
                         </template>
                     </v-data-table>
                 </v-card>
@@ -104,14 +111,14 @@
         <v-overlay :value="isLoading" z-index="9999">
             <div class="text-center">
                 <v-progress-circular indeterminate size="64" color="primary"></v-progress-circular>
-                <div v-if="progressCount > 0" class="mt-4 text-h6">正在同步圖書資料... ({{ progressCount }} / 47304)</div>
+                <div v-if="progressCount > 0" class="mt-4 text-h6">{{ $t('syncingText') }} ({{ progressCount }} / 47304)</div>
             </div>
         </v-overlay>
 
         <v-dialog v-model="isModalOpen" max-width="500">
             <v-card v-if="selectedBook">
                 <v-card-title class="text-h6 blue-grey lighten-5">
-                    書籍詳細資料
+                    {{ $t('detailTitle') }}
                     <v-spacer></v-spacer>
                     <v-btn icon @click="closeModal">
                         <v-icon>mdi-close</v-icon>
@@ -137,47 +144,27 @@
 
         <v-dialog v-model="loginDialog" max-width="400" persistent>
             <v-card>
-                <v-card-title class="text-h6 blue-grey darken-3 white--text">
-                    管理員登入
-                </v-card-title>
+                <v-card-title class="text-h6 blue-grey darken-3 white--text">{{ $t('sysAdmin') }}</v-card-title>
                 <v-card-text class="pt-6">
-                    <v-text-field
-                        v-model="loginForm.username"
-                        label="帳號"
-                        prepend-icon="mdi-account"
-                        outlined
-                        dense
-                    ></v-text-field>
-                    <v-text-field
-                        v-model="loginForm.password"
-                        label="密碼"
-                        type="password"
-                        prepend-icon="mdi-lock"
-                        outlined
-                        dense
-                        @keyup.enter="submitLogin"
-                    ></v-text-field>
+                    <v-text-field v-model="loginForm.username" label="Username" prepend-icon="mdi-account" outlined dense></v-text-field>
+                    <v-text-field v-model="loginForm.password" label="Password" type="password" prepend-icon="mdi-lock" outlined dense @keyup.enter="submitLogin"></v-text-field>
                 </v-card-text>
                 <v-card-actions class="pb-4 px-4">
                     <v-spacer></v-spacer>
-                    <v-btn text color="grey darken-1" @click="closeLoginDialog">取消</v-btn>
-                    <v-btn color="primary" :loading="isLoggingIn" @click="submitLogin">登入</v-btn>
+                    <v-btn text color="grey darken-1" @click="closeLoginDialog">{{ $t('close') }}</v-btn>
+                    <v-btn color="primary" :loading="isLoggingIn" @click="submitLogin">Login</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
 
         <v-dialog v-model="logoutDialog" max-width="350">
             <v-card>
-                <v-card-title class="text-h6">
-                    確認登出
-                </v-card-title>
-                <v-card-text class="pt-2 text-body-1">
-                    您確定要登出系統管理嗎？
-                </v-card-text>
+                <v-card-title class="text-h6">Confirm</v-card-title>
+                <v-card-text class="pt-2 text-body-1">{{ $t('confirmLogout') }}</v-card-text>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn text color="grey darken-1" @click="logoutDialog = false">取消</v-btn>
-                    <v-btn color="error" @click="submitLogout">確認登出</v-btn>
+                    <v-btn text color="grey darken-1" @click="logoutDialog = false">{{ $t('close') }}</v-btn>
+                    <v-btn color="error" @click="submitLogout">{{ $t('logout') }}</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
@@ -189,6 +176,7 @@
     new Vue({
         el: '#app',
         vuetify: new Vuetify(),
+        i18n, // 3. 將 i18n 注入到 Vue 實體中
         data: {
             db: null,
             isLoading: true,
@@ -196,42 +184,44 @@
             searchQuery: '',
             searchDebounce: null,
             books: [],
-            
             page: 1,
             pageCount: 0,
-
-            headers: [
-                { text: '索書號', value: 'tno', sortable: false },
-                { text: '書名', value: 'book_name', sortable: false },
-                { text: '作者', value: 'author', sortable: false },
-                { text: '館藏位置', value: 'room', sortable: false }
-            ],
             isModalOpen: false,
             selectedBook: null,
-            fieldLabels: {
-                tno: '索書號', book_name: '書名', author: '作者', room: '館藏位置',
-                publish: '出版社', year: '出版年份', isbn: 'ISBN', series: '叢書名',
-                cat: '分類號'
-            },
             jwtToken: localStorage.getItem('lib_jwt') || null,
             loginDialog: false,
             isLoggingIn: false,
             loginForm: { username: '', password: '' },
             logoutDialog: false,
-            ws: null
+            ws: null,
+            
+            // 綁定 UI 的語言切換狀態
+            currentLocale: i18n.locale
         },
         computed: {
             isLoggedIn() {
                 return this.jwtToken !== null && this.jwtToken !== '';
+            },
+            // 將原本寫死的 headers 改為 computed，這樣切換語言時表格標題才會跟著變
+            headers() {
+                return [
+                    { text: this.$t('fields.tno'), value: 'tno', sortable: false },
+                    { text: this.$t('fields.book_name'), value: 'book_name', sortable: false },
+                    { text: this.$t('fields.author'), value: 'author', sortable: false },
+                    { text: this.$t('fields.room'), value: 'room', sortable: false }
+                ];
             }
         },
         watch: {
+            // 監聽按鈕切換，更新 i18n 設定並記錄到 localStorage
+            currentLocale(newLang) {
+                this.$i18n.locale = newLang;
+                localStorage.setItem('lib_lang', newLang);
+            },
             searchQuery(newQuery) {
                 this.page = 1;
-                
                 clearTimeout(this.searchDebounce);
                 this.isLoading = true;
-
                 this.searchDebounce = setTimeout(async () => {
                     if (!newQuery) {
                         await this.loadAllBooks();
@@ -351,8 +341,6 @@
                     request.onerror = () => reject(request.error);
                 });
             },
-            
-            // --- UI 互動邏輯 ---
             openModal(item) {
                 this.selectedBook = item;
                 this.isModalOpen = true;
@@ -361,13 +349,13 @@
                 this.isModalOpen = false;
                 setTimeout(() => { this.selectedBook = null; }, 300);
             },
+            // 修改：從 i18n 的字典檔中讀取欄位翻譯，如果找不到就回傳原本的 key
             formatKey(key) {
-                return this.fieldLabels[key] || key;
+                return this.$t(`fields.${key}`) || key;
             },
             isSearchableField(key) {
                 return key === 'book_name' || key === 'author';
             },
-            // 新增：用來判斷是否為應隱藏的內部索引欄位
             isHiddenField(key) {
                 return ['book_name_lower', 'author_lower'].includes(key);
             },
@@ -377,11 +365,8 @@
                     this.closeModal();
                 }
             },
-
-            // --- 鍵盤快捷鍵邏輯 ---
             handleKeydown(e) {
                 const isAnyDialogOpen = this.isModalOpen || this.loginDialog || this.logoutDialog;
-                
                 const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
                 const isUserTyping = activeTag === 'input' || activeTag === 'textarea';
 
@@ -395,8 +380,6 @@
                     if (this.page < this.pageCount) this.page++;
                 }
             },
-
-            // --- 認證與 WebSocket 邏輯 ---
             closeLoginDialog() {
                 this.loginDialog = false;
                 this.loginForm.password = ''; 
