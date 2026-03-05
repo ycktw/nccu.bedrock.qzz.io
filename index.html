@@ -15,7 +15,6 @@
     <script src="data/db.js"></script>
 
     <style>
-        /* 僅保留少數自訂樣式，大部分由 Vuetify 接管 */
         .pointer-link {
             cursor: pointer;
             text-decoration: underline;
@@ -25,7 +24,6 @@
         .pointer-link:hover {
             text-decoration-color: currentColor;
         }
-        /* 讓表格列在懸停時顯示為可點擊 */
         .v-data-table tbody tr {
             cursor: pointer;
         }
@@ -82,12 +80,18 @@
                         :headers="headers"
                         :items="books"
                         :items-per-page="10"
+                        :page.sync="page"
+                        @page-count="pageCount = $event"
                         :loading="isLoading"
                         loading-text="資料載入中... 請稍候"
                         no-data-text="目前沒有資料"
                         no-results-text="查無符合條件的圖書"
                         class="elevation-1"
                         @click:row="openModal"
+												:footer-props="{
+                            'items-per-page-text': '每頁顯示筆數：',
+                            'items-per-page-all-text': '全部'
+                        }"
                     >
                         <template v-slot:footer.page-text="items">
                             {{ items.pageStart }} - {{ items.pageStop }} 筆 / 共 {{ items.itemsLength }} 筆
@@ -114,7 +118,7 @@
                     </v-btn>
                 </v-card-title>
                 <v-card-text class="pt-4">
-                    <v-row v-for="(value, key) in selectedBook" :key="key" class="mb-1 align-center">
+                    <v-row v-for="(value, key) in selectedBook" :key="key" class="mb-1 align-center" v-if="!isHiddenField(key)">
                         <v-col cols="4" class="font-weight-bold blue-grey--text text--darken-2">
                             {{ formatKey(key) }}
                         </v-col>
@@ -128,10 +132,6 @@
                         </v-col>
                     </v-row>
                 </v-card-text>
-                <v-card-actions>
-                    <v-btn color="primary" text @click="closeModal">關閉</v-btn>
-                    <v-spacer></v-spacer>
-                </v-card-actions>
             </v-card>
         </v-dialog>
 
@@ -190,12 +190,16 @@
         el: '#app',
         vuetify: new Vuetify(),
         data: {
-            db: null, // 用於保存 IndexedDB 連線實例
+            db: null,
             isLoading: true,
             progressCount: 0,
             searchQuery: '',
-            searchDebounce: null, // 用於存放 setTimeout 的 ID
+            searchDebounce: null,
             books: [],
+            
+            page: 1,
+            pageCount: 0,
+
             headers: [
                 { text: '索書號', value: 'tno', sortable: false },
                 { text: '書名', value: 'book_name', sortable: false },
@@ -222,8 +226,9 @@
             }
         },
         watch: {
-            // 監聽搜尋關鍵字變化
             searchQuery(newQuery) {
+                this.page = 1;
+                
                 clearTimeout(this.searchDebounce);
                 this.isLoading = true;
 
@@ -237,14 +242,18 @@
                 }, 300);
             }
         },
+        mounted() {
+            window.addEventListener('keydown', this.handleKeydown);
+        },
         async created() {
             await initLibraryDB((count) => {
                 this.progressCount = count;
-                this.isLoading = true; // 在同步時也顯示遮罩
+                this.isLoading = true;
             });
             await this.initAndLoad();
         },
         beforeDestroy() {
+            window.removeEventListener('keydown', this.handleKeydown);
             if (this.ws) this.ws.close();
             if (this.db) this.db.close();
         },
@@ -273,7 +282,6 @@
                             store = e.target.transaction.objectStore(STORE_NAME);
                         }
                         
-                        // 建立新的小寫索引
                         if (!store.indexNames.contains('book_name_lower')) {
                             store.createIndex('book_name_lower', 'book_name_lower', { unique: false });
                         }
@@ -281,7 +289,6 @@
                             store.createIndex('author_lower', 'author_lower', { unique: false });
                         }
 
-                        // 移除舊的索引
                         if (store.indexNames.contains('book_name')) {
                             store.deleteIndex('book_name');
                         }
@@ -317,7 +324,6 @@
                 const tx = this.db.transaction(STORE_NAME, 'readonly');
                 const store = tx.objectStore(STORE_NAME);
                 
-                // 使用新的小寫索引
                 const bookNameIndex = store.index('book_name_lower');
                 const authorIndex = store.index('author_lower');
                 const range = IDBKeyRange.bound(lowerCaseQuery, lowerCaseQuery + '\uffff');
@@ -361,10 +367,32 @@
             isSearchableField(key) {
                 return key === 'book_name' || key === 'author';
             },
+            // 新增：用來判斷是否為應隱藏的內部索引欄位
+            isHiddenField(key) {
+                return ['book_name_lower', 'author_lower'].includes(key);
+            },
             handleDetailClick(key, value) {
                 if (this.isSearchableField(key) && value) {
                     this.searchQuery = value;
                     this.closeModal();
+                }
+            },
+
+            // --- 鍵盤快捷鍵邏輯 ---
+            handleKeydown(e) {
+                const isAnyDialogOpen = this.isModalOpen || this.loginDialog || this.logoutDialog;
+                
+                const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+                const isUserTyping = activeTag === 'input' || activeTag === 'textarea';
+
+                if (isAnyDialogOpen || isUserTyping) {
+                    return;
+                }
+
+                if (e.key === 'ArrowLeft') {
+                    if (this.page > 1) this.page--;
+                } else if (e.key === 'ArrowRight') {
+                    if (this.page < this.pageCount) this.page++;
                 }
             },
 
