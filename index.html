@@ -42,7 +42,7 @@
             <v-btn-toggle v-model="currentLocale" mandatory dense class="mr-4" background-color="blue-grey darken-2" dark>
                 <v-btn value="zh-Hant" small>繁中</v-btn>
                 <v-btn value="en" small>EN</v-btn>
-								<v-btn value="ja" small>日</v-btn>
+                <v-btn value="ja" small>日</v-btn>
             </v-btn-toggle>
 
             <v-btn 
@@ -142,7 +142,7 @@
             </v-card>
         </v-dialog>
 
-        <v-dialog v-model="loginDialog" max-width="400" persistent>
+        <v-dialog v-model="loginDialog" max-width="400" persistent @keydown.esc="closeLoginDialog">
             <v-card>
                 <v-card-title class="text-h6 blue-grey darken-3 white--text">{{ $t('sysAdmin') }}</v-card-title>
                 <v-card-text class="pt-6">
@@ -176,7 +176,7 @@
     new Vue({
         el: '#app',
         vuetify: new Vuetify(),
-        i18n, // 3. 將 i18n 注入到 Vue 實體中
+        i18n,
         data: {
             db: null,
             isLoading: true,
@@ -194,15 +194,12 @@
             loginForm: { username: '', password: '' },
             logoutDialog: false,
             ws: null,
-            
-            // 綁定 UI 的語言切換狀態
             currentLocale: i18n.locale
         },
         computed: {
             isLoggedIn() {
                 return this.jwtToken !== null && this.jwtToken !== '';
             },
-            // 將原本寫死的 headers 改為 computed，這樣切換語言時表格標題才會跟著變
             headers() {
                 return [
                     { text: this.$t('fields.tno'), value: 'tno', sortable: false },
@@ -213,7 +210,6 @@
             }
         },
         watch: {
-            // 監聽按鈕切換，更新 i18n 設定並記錄到 localStorage
             currentLocale(newLang) {
                 this.$i18n.locale = newLang;
                 localStorage.setItem('lib_lang', newLang);
@@ -349,7 +345,6 @@
                 this.isModalOpen = false;
                 setTimeout(() => { this.selectedBook = null; }, 300);
             },
-            // 修改：從 i18n 的字典檔中讀取欄位翻譯，如果找不到就回傳原本的 key
             formatKey(key) {
                 return this.$t(`fields.${key}`) || key;
             },
@@ -366,6 +361,12 @@
                 }
             },
             handleKeydown(e) {
+                // 新增：優先攔截 ESC 鍵。若登入對話框開啟，則將其關閉並終止後續動作
+                if (e.key === 'Escape' && this.loginDialog) {
+                    this.closeLoginDialog();
+                    return;
+                }
+
                 const isAnyDialogOpen = this.isModalOpen || this.loginDialog || this.logoutDialog;
                 const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
                 const isUserTyping = activeTag === 'input' || activeTag === 'textarea';
