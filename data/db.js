@@ -1,5 +1,5 @@
 const DB_NAME = 'lib';
-const DB_VERSION = 3;
+const DB_VERSION = 5;
 const STORE_NAME = 'books';
 const VERSION_URL = './data/version.js'; 
 const DATA_URL = './data/library.json';
@@ -32,6 +32,9 @@ async function refreshData(version, onProgress) {
 
 	store.clear(); // 清空舊資料
 	books.forEach((book, index) => {
+        // 為了搜尋，儲存小寫版本的書名與作者
+        book.book_name_lower = (book.book_name || "").toLowerCase();
+        book.author_lower = (book.author || "").toLowerCase();
 		store.put(book);
 		// 透過 callback 將進度傳回給 Vue
 		if (index % 500 === 0 && onProgress) {
@@ -60,11 +63,30 @@ function openDB() {
 		const request = indexedDB.open(DB_NAME, DB_VERSION);
 		request.onupgradeneeded = (e) => {
 			const db = e.target.result;
+			let store;
 			if (!db.objectStoreNames.contains(STORE_NAME)) {
-				const store = db.createObjectStore(STORE_NAME, { keyPath: 'tno' });
-				store.createIndex('tno', 'tno', { unique: true });
-				console.log("資料表與索引建立成功:", STORE_NAME);
+				store = db.createObjectStore(STORE_NAME, { keyPath: 'tno' });
+			} else {
+				store = e.target.transaction.objectStore(STORE_NAME);
 			}
+
+			// 建立新的小寫索引
+			if (!store.indexNames.contains('book_name_lower')) {
+				store.createIndex('book_name_lower', 'book_name_lower', { unique: false });
+			}
+			if (!store.indexNames.contains('author_lower')) {
+				store.createIndex('author_lower', 'author_lower', { unique: false });
+			}
+
+            // 移除舊的索引 (可選，但保持整潔)
+            if (store.indexNames.contains('book_name')) {
+                store.deleteIndex('book_name');
+            }
+            if (store.indexNames.contains('author')) {
+                store.deleteIndex('author');
+            }
+
+			console.log("資料表與索引更新成功!");
 		};
 		request.onsuccess = () => resolve(request.result);
 		request.onerror = () => reject(request.error);

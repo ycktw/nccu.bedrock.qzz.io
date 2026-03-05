@@ -81,8 +81,6 @@
                     <v-data-table
                         :headers="headers"
                         :items="books"
-                        :search="searchQuery"
-                        :custom-filter="customFilter"
                         :items-per-page="10"
                         :loading="isLoading"
                         loading-text="資料載入中... 請稍候"
@@ -102,7 +100,7 @@
         <v-overlay :value="isLoading" z-index="9999">
             <div class="text-center">
                 <v-progress-circular indeterminate size="64" color="primary"></v-progress-circular>
-                <div class="mt-4 text-h6">正在同步圖書資料... ({{ progressCount }} / 47304)</div>
+                <div v-if="progressCount > 0" class="mt-4 text-h6">正在同步圖書資料... ({{ progressCount }} / 47304)</div>
             </div>
         </v-overlay>
 
@@ -190,22 +188,20 @@
 <script>
     new Vue({
         el: '#app',
-        // 宣告使用 Vuetify
         vuetify: new Vuetify(),
         data: {
+            db: null, // 用於保存 IndexedDB 連線實例
             isLoading: true,
             progressCount: 0,
             searchQuery: '',
+            searchDebounce: null, // 用於存放 setTimeout 的 ID
             books: [],
-            
-            // Vuetify 表格的標題設定
             headers: [
                 { text: '索書號', value: 'tno', sortable: false },
                 { text: '書名', value: 'book_name', sortable: false },
                 { text: '作者', value: 'author', sortable: false },
                 { text: '館藏位置', value: 'room', sortable: false }
             ],
-            
             isModalOpen: false,
             selectedBook: null,
             fieldLabels: {
@@ -213,102 +209,151 @@
                 publish: '出版社', year: '出版年份', isbn: 'ISBN', series: '叢書名',
                 cat: '分類號'
             },
-            
-            // --- 認證與授權相關狀態 ---
             jwtToken: localStorage.getItem('lib_jwt') || null,
-            
-            // 登入對話框狀態
             loginDialog: false,
             isLoggingIn: false,
-            loginForm: {
-                username: '',
-                password: ''
-            },
-
-            // 登出對話框狀態
+            loginForm: { username: '', password: '' },
             logoutDialog: false,
-
             ws: null
         },
         computed: {
-            // 利用 JWT Token 的有無來判斷是否已登入
             isLoggedIn() {
                 return this.jwtToken !== null && this.jwtToken !== '';
+            }
+        },
+        watch: {
+            // 監聽搜尋關鍵字變化
+            searchQuery(newQuery) {
+                clearTimeout(this.searchDebounce);
+                this.isLoading = true;
+
+                this.searchDebounce = setTimeout(async () => {
+                    if (!newQuery) {
+                        await this.loadAllBooks();
+                    } else {
+                        await this.performSearch(newQuery);
+                    }
+                    this.isLoading = false;
+                }, 300);
             }
         },
         async created() {
             await initLibraryDB((count) => {
                 this.progressCount = count;
+                this.isLoading = true; // 在同步時也顯示遮罩
             });
             await this.initAndLoad();
-            
-            // 如果已經有 JWT，可以考慮在這邊就建立安全的 WebSocket 連線
-            // if (this.isLoggedIn) {
-            //     this.initSecureWebSocket();
-            // }
         },
         beforeDestroy() {
-            if (this.ws) {
-                this.ws.close();
-            }
+            if (this.ws) this.ws.close();
+            if (this.db) this.db.close();
         },
         methods: {
-            // --- 資料庫邏輯 (不變) ---
             async initAndLoad() {
                 try {
-                    const db = await this.openDB();
-                    await this.loadData(db);
-                    this.isLoading = false;
+                    this.isLoading = true;
+                    this.db = await this.openDB();
+                    await this.loadAllBooks();
                 } catch (err) {
                     console.error("初始化失敗:", err);
+                } finally {
                     this.isLoading = false;
                 }
             },
             openDB() {
                 return new Promise((resolve, reject) => {
                     const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    
                     request.onupgradeneeded = (e) => {
                         const db = e.target.result;
+                        let store;
                         if (!db.objectStoreNames.contains(STORE_NAME)) {
-                            db.createObjectStore(STORE_NAME, { keyPath: 'tno' });
+                            store = db.createObjectStore(STORE_NAME, { keyPath: 'tno' });
+                        } else {
+                            store = e.target.transaction.objectStore(STORE_NAME);
                         }
+                        
+                        // 建立新的小寫索引
+                        if (!store.indexNames.contains('book_name_lower')) {
+                            store.createIndex('book_name_lower', 'book_name_lower', { unique: false });
+                        }
+                        if (!store.indexNames.contains('author_lower')) {
+                            store.createIndex('author_lower', 'author_lower', { unique: false });
+                        }
+
+                        // 移除舊的索引
+                        if (store.indexNames.contains('book_name')) {
+                            store.deleteIndex('book_name');
+                        }
+                        if (store.indexNames.contains('author')) {
+                            store.deleteIndex('author');
+                        }
+                        console.log("資料表與索引更新成功!");
                     };
+                    
                     request.onsuccess = (e) => resolve(e.target.result);
                     request.onerror = (e) => reject(e.target.error);
                 });
             },
-            loadData(db) {
-                return new Promise((resolve) => {
-                    const tx = db.transaction(STORE_NAME, 'readonly');
+            loadAllBooks() {
+                return new Promise((resolve, reject) => {
+                    if (!this.db) return reject("資料庫尚未連線");
+
+                    const tx = this.db.transaction(STORE_NAME, 'readonly');
                     const store = tx.objectStore(STORE_NAME);
-                    const getAll = store.getAll();
-                    getAll.onsuccess = () => {
-                        this.books = getAll.result || [];
+                    const getAllReq = store.getAll();
+                    
+                    getAllReq.onsuccess = () => {
+                        this.books = getAllReq.result || [];
                         resolve();
                     };
+                    getAllReq.onerror = (e) => reject(e.target.error);
                 });
             },
+            async performSearch(query) {
+                if (!this.db) return;
 
-            // --- UI 互動邏輯 ---
-            // 自訂過濾規則：限定只搜尋書名與作者，符合你原本的邏輯
-            customFilter(value, search, item) {
-                if (!search) return true;
-                const query = search.toLowerCase();
-                const bookName = (item.book_name || "").toLowerCase();
-                const author = (item.author || "").toLowerCase();
-                return bookName.includes(query) || author.includes(query);
+                const lowerCaseQuery = query.toLowerCase();
+                const tx = this.db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                
+                // 使用新的小寫索引
+                const bookNameIndex = store.index('book_name_lower');
+                const authorIndex = store.index('author_lower');
+                const range = IDBKeyRange.bound(lowerCaseQuery, lowerCaseQuery + '\uffff');
+
+                const bookNamePromise = this.promisifyRequest(bookNameIndex.getAll(range));
+                const authorPromise = this.promisifyRequest(authorIndex.getAll(range));
+
+                try {
+                    const [bookNameResults, authorResults] = await Promise.all([bookNamePromise, authorPromise]);
+
+                    const results = new Map();
+                    bookNameResults.forEach(book => results.set(book.tno, book));
+                    authorResults.forEach(book => results.set(book.tno, book));
+
+                    this.books = Array.from(results.values());
+
+                } catch (error) {
+                    console.error("搜尋時發生錯誤:", error);
+                    this.books = [];
+                }
             },
+            promisifyRequest(request) {
+                return new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            },
+            
+            // --- UI 互動邏輯 ---
             openModal(item) {
-                // Vuetify 的 @click:row 會傳入該列的資料物件 (item)
                 this.selectedBook = item;
                 this.isModalOpen = true;
             },
             closeModal() {
                 this.isModalOpen = false;
-                // 延遲清空資料，避免對話框關閉動畫進行中發生閃爍
-                setTimeout(() => {
-                    this.selectedBook = null;
-                }, 300);
+                setTimeout(() => { this.selectedBook = null; }, 300);
             },
             formatKey(key) {
                 return this.fieldLabels[key] || key;
@@ -323,66 +368,34 @@
                 }
             },
 
-            // --- 新增：登入與登出邏輯 ---
+            // --- 認證與 WebSocket 邏輯 ---
             closeLoginDialog() {
                 this.loginDialog = false;
-                // 清空密碼，保留帳號方便使用者重新輸入
                 this.loginForm.password = ''; 
             },
             async submitLogin() {
                 if (!this.loginForm.username || !this.loginForm.password) return;
-                
                 this.isLoggingIn = true;
-
-                // 這裡預留給未來與 Go 伺服器的 HTTP POST 驗證
-                /*
-                try {
-                    const res = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(this.loginForm)
-                    });
-                    const data = await res.json();
-                    if (data.token) {
-                        this.jwtToken = data.token;
-                        localStorage.setItem('lib_jwt', data.token);
-                        // 取得 Token 後，建立帶有驗證資訊的 WebSocket
-                        this.initSecureWebSocket();
-                    }
-                } catch (err) { ... }
-                */
-
-                // 目前先用 setTimeout 模擬網路請求延遲與成功登入
                 setTimeout(() => {
                     const mockToken = "mock_jwt_header.mock_jwt_payload.mock_jwt_signature";
                     this.jwtToken = mockToken;
                     localStorage.setItem('lib_jwt', mockToken);
-                    
                     this.isLoggingIn = false;
                     this.closeLoginDialog();
-                    // 登入成功後清空表單
                     this.loginForm.username = '';
                     this.loginForm.password = '';
                 }, 800);
             },
             submitLogout() {
-                // 清除 Token 與狀態
                 this.jwtToken = null;
                 localStorage.removeItem('lib_jwt');
-                
-                // 斷開 WebSocket 連線
                 if (this.ws) {
                     this.ws.close();
                     this.ws = null;
                 }
-                
                 this.logoutDialog = false;
             },
-
-            // --- WebSocket 相關方法 ---
             initSecureWebSocket() {
-                // 未來可以在這裡將 JWT 帶入連線參數，例如：
-                // const wsUrl = `ws://localhost:8080/ws?token=${this.jwtToken}`; 
                 const wsUrl = 'ws://localhost:8080/ws'; 
                 try {
                     this.ws = new WebSocket(wsUrl);
