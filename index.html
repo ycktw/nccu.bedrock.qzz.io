@@ -57,7 +57,9 @@
             </v-btn>
 
             <template v-else>
-                <span class="mr-4 text-body-2 grey--text text--lighten-1">{{ $t('loggedInStatus') }}</span>
+                <span class="mr-4 text-body-2 grey--text text--lighten-1">
+                    {{ loggedInUser }}({{ loggedInLevel }}) 已登入
+                </span>
                 <v-btn
                     outlined
                     color="red lighten-2"
@@ -188,7 +190,9 @@
             pageCount: 0,
             isModalOpen: false,
             selectedBook: null,
-            jwtToken: localStorage.getItem('lib_jwt') || null,
+						jwtToken: localStorage.getItem('lib_jwt') || null,
+            loggedInUser: localStorage.getItem('lib_user') || '',
+            loggedInLevel: localStorage.getItem('lib_level') || '',
             loginDialog: false,
             isLoggingIn: false,
             loginForm: { username: '', password: '' },
@@ -385,9 +389,17 @@
                 this.loginDialog = false;
                 this.loginForm.password = '';
             },
-            submitLogout() {
+						submitLogout() {
+                // --- 修改這裡：登出時一併清空帳號與權限 ---
                 this.jwtToken = null;
+                this.loggedInUser = '';
+                this.loggedInLevel = '';
+
                 localStorage.removeItem('lib_jwt');
+                localStorage.removeItem('lib_user');
+                localStorage.removeItem('lib_level');
+                // ------------------------------------------
+
                 if (this.ws) {
                     this.ws.close();
                     this.ws = null;
@@ -398,23 +410,19 @@
                 if (!this.loginForm.username || !this.loginForm.password) return;
                 this.isLoggingIn = true;
 
-                // 從 localStorage 取得我們設定的 ngrok wss 網址
                 const baseWsUrl = localStorage.getItem("wsUrl");
                 if (!baseWsUrl) {
                     alert("請先在 Console 設定 wsUrl！");
                     this.isLoggingIn = false;
                     return;
                 }
-                // 將 wss:// 替換為 https://，並將路由改為 /api/login
                 const apiUrl = baseWsUrl.replace('wss://', 'https://').replace('/ws', '/api/login');
 
                 try {
-                    // 發送真實的 POST 請求給 Go 伺服器
                     const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            // 這是給 ngrok 的特殊標頭，避免 API 請求被 ngrok 警告頁面攔截
                             'ngrok-skip-browser-warning': 'true'
                         },
                         body: JSON.stringify({
@@ -423,7 +431,6 @@
                         })
                     });
 
-                    // 處理帳號密碼錯誤
                     if (!response.ok) {
                         const errData = await response.json();
                         alert("登入失敗：" + (errData.error || "未知錯誤"));
@@ -431,17 +438,23 @@
                         return;
                     }
 
-                    // 登入成功，取得真實的 JWT
                     const data = await response.json();
+
+                    // --- 修改這裡：同時儲存 Token、帳號與權限 ---
                     this.jwtToken = data.token;
+                    this.loggedInUser = this.loginForm.username; // 從表單拿帳號
+                    this.loggedInLevel = data.level;             // 從後端拿權限等級
+
                     localStorage.setItem('lib_jwt', data.token);
+                    localStorage.setItem('lib_user', this.loggedInUser);
+                    localStorage.setItem('lib_level', this.loggedInLevel);
+                    // ----------------------------------------------
 
                     this.isLoggingIn = false;
                     this.closeLoginDialog();
                     this.loginForm.username = '';
                     this.loginForm.password = '';
 
-                    // 取得真實 Token 後，自動發起 WebSocket 連線
                     this.initSecureWebSocket();
 
                 } catch (error) {
