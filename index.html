@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
     <title>政大歷史系圖書查詢系統</title>
-    
+
     <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
-    
+
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
     <script src="https://unpkg.com/vue-i18n@8/dist/vue-i18n.js"></script>
@@ -36,7 +36,7 @@
     <v-app>
         <v-app-bar app color="blue-grey darken-3" dark>
             <v-toolbar-title>{{ $t('appTitle') }}</v-toolbar-title>
-            
+
             <v-spacer></v-spacer>
 
             <v-btn-toggle v-model="currentLocale" mandatory dense class="mr-4" background-color="blue-grey darken-2" dark>
@@ -45,10 +45,10 @@
                 <v-btn value="ja" small>日</v-btn>
             </v-btn-toggle>
 
-            <v-btn 
-                v-if="!isLoggedIn" 
-                text 
-                color="grey" 
+            <v-btn
+                v-if="!isLoggedIn"
+                text
+                color="grey"
                 class="text-none"
                 @click="loginDialog = true"
             >
@@ -58,9 +58,9 @@
 
             <template v-else>
                 <span class="mr-4 text-body-2 grey--text text--lighten-1">{{ $t('loggedInStatus') }}</span>
-                <v-btn 
-                    outlined 
-                    color="red lighten-2" 
+                <v-btn
+                    outlined
+                    color="red lighten-2"
                     small
                     @click="logoutDialog = true"
                 >
@@ -130,7 +130,7 @@
                             {{ formatKey(key) }}
                         </v-col>
                         <v-col cols="8" class="text-body-1 text-break">
-                            <span 
+                            <span
                                 :class="{'primary--text font-weight-bold pointer-link': isSearchableField(key) && value}"
                                 @click="handleDetailClick(key, value)"
                             >
@@ -258,7 +258,7 @@
             openDB() {
                 return new Promise((resolve, reject) => {
                     const request = indexedDB.open(DB_NAME, DB_VERSION);
-                    
+
                     request.onupgradeneeded = (e) => {
                         const db = e.target.result;
                         let store;
@@ -267,7 +267,7 @@
                         } else {
                             store = e.target.transaction.objectStore(STORE_NAME);
                         }
-                        
+
                         if (!store.indexNames.contains('book_name_lower')) {
                             store.createIndex('book_name_lower', 'book_name_lower', { unique: false });
                         }
@@ -283,7 +283,7 @@
                         }
                         console.log("資料表與索引更新成功!");
                     };
-                    
+
                     request.onsuccess = (e) => resolve(e.target.result);
                     request.onerror = (e) => reject(e.target.error);
                 });
@@ -295,7 +295,7 @@
                     const tx = this.db.transaction(STORE_NAME, 'readonly');
                     const store = tx.objectStore(STORE_NAME);
                     const getAllReq = store.getAll();
-                    
+
                     getAllReq.onsuccess = () => {
                         this.books = getAllReq.result || [];
                         resolve();
@@ -309,7 +309,7 @@
                 const lowerCaseQuery = query.toLowerCase();
                 const tx = this.db.transaction(STORE_NAME, 'readonly');
                 const store = tx.objectStore(STORE_NAME);
-                
+
                 const bookNameIndex = store.index('book_name_lower');
                 const authorIndex = store.index('author_lower');
                 const range = IDBKeyRange.bound(lowerCaseQuery, lowerCaseQuery + '\uffff');
@@ -383,7 +383,7 @@
             },
             closeLoginDialog() {
                 this.loginDialog = false;
-                this.loginForm.password = ''; 
+                this.loginForm.password = '';
             },
             async submitLogin() {
                 if (!this.loginForm.username || !this.loginForm.password) return;
@@ -408,7 +408,8 @@
                 this.logoutDialog = false;
             },
             initSecureWebSocket() {
-                const wsUrl = 'ws://localhost:8080/ws'; 
+                const wsUrl = localStorage.getItem("wsUrl");
+								// 'ws://localhost:8080/ws';
                 try {
                     this.ws = new WebSocket(wsUrl);
                     this.ws.onopen = () => console.log('WebSocket 安全連線已成功建立');
