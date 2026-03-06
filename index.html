@@ -385,57 +385,6 @@
                 this.loginDialog = false;
                 this.loginForm.password = '';
             },
-						async submitLogin() {
-                if (!this.loginForm.username || !this.loginForm.password) return;
-                this.isLoggingIn = true;
-
-                // 從 localStorage 取得 ngrok 網址，並轉換成 HTTP API 網址
-                const baseWsUrl = localStorage.getItem("wsUrl");
-                if (!baseWsUrl) {
-                    alert("請先在 Console 設定 wsUrl！");
-                    this.isLoggingIn = false;
-                    return;
-                }
-                const apiUrl = baseWsUrl.replace('wss://', 'https://').replace('/ws', '/api/login');
-
-                try {
-                    // 1. 發送真實的 POST 請求給 Go 伺服器
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            username: this.loginForm.username,
-                            password: this.loginForm.password
-                        })
-                    });
-
-                    // 2. 處理帳號密碼錯誤
-                    if (!response.ok) {
-                        const errData = await response.json();
-                        alert("登入失敗：" + (errData.error || "未知錯誤"));
-                        this.isLoggingIn = false;
-                        return;
-                    }
-
-                    // 3. 登入成功，取得真實的 JWT
-                    const data = await response.json();
-                    this.jwtToken = data.token;
-                    localStorage.setItem('lib_jwt', data.token);
-
-                    this.isLoggingIn = false;
-                    this.closeLoginDialog();
-                    this.loginForm.username = '';
-                    this.loginForm.password = '';
-
-                    // 4. 自動觸發 WebSocket 連線
-                    this.initSecureWebSocket();
-
-                } catch (error) {
-                    console.error("登入 API 呼叫失敗:", error);
-                    alert("無法連線到伺服器，請確認 Go 伺服器與 ngrok 是否執行中");
-                    this.isLoggingIn = false;
-                }
-            },
             submitLogout() {
                 this.jwtToken = null;
                 localStorage.removeItem('lib_jwt');
@@ -445,11 +394,67 @@
                 }
                 this.logoutDialog = false;
             },
+						async submitLogin() {
+                if (!this.loginForm.username || !this.loginForm.password) return;
+                this.isLoggingIn = true;
+
+                // 從 localStorage 取得我們設定的 ngrok wss 網址
+                const baseWsUrl = localStorage.getItem("wsUrl");
+                if (!baseWsUrl) {
+                    alert("請先在 Console 設定 wsUrl！");
+                    this.isLoggingIn = false;
+                    return;
+                }
+                // 將 wss:// 替換為 https://，並將路由改為 /api/login
+                const apiUrl = baseWsUrl.replace('wss://', 'https://').replace('/ws', '/api/login');
+
+                try {
+                    // 發送真實的 POST 請求給 Go 伺服器
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            // 這是給 ngrok 的特殊標頭，避免 API 請求被 ngrok 警告頁面攔截
+                            'ngrok-skip-browser-warning': 'true'
+                        },
+                        body: JSON.stringify({
+                            username: this.loginForm.username,
+                            password: this.loginForm.password
+                        })
+                    });
+
+                    // 處理帳號密碼錯誤
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        alert("登入失敗：" + (errData.error || "未知錯誤"));
+                        this.isLoggingIn = false;
+                        return;
+                    }
+
+                    // 登入成功，取得真實的 JWT
+                    const data = await response.json();
+                    this.jwtToken = data.token;
+                    localStorage.setItem('lib_jwt', data.token);
+
+                    this.isLoggingIn = false;
+                    this.closeLoginDialog();
+                    this.loginForm.username = '';
+                    this.loginForm.password = '';
+
+                    // 取得真實 Token 後，自動發起 WebSocket 連線
+                    this.initSecureWebSocket();
+
+                } catch (error) {
+                    console.error("登入 API 呼叫失敗:", error);
+                    alert("無法連線到伺服器，請確認 Go 伺服器與 ngrok 是否執行中");
+                    this.isLoggingIn = false;
+                }
+            },
 
             initSecureWebSocket() {
                 const baseUrl = localStorage.getItem("wsUrl");
 
-                // 【關鍵修改】：把真實的 JWT 綁定在網址後面的 ?token= 參數中
+                // 將剛取得的真實 Token 附加在 WebSocket 網址後方的參數中
                 const wsUrl = `${baseUrl}?token=${this.jwtToken}`;
 
                 try {
