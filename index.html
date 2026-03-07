@@ -66,7 +66,7 @@
                         </v-btn>
                     </template>
                     <v-list dense>
-                        <v-list-item link @click.stop="">
+                        <v-list-item link @click.stop="openBorrowDialog">
                             <v-list-item-icon class="mr-3"><v-icon>mdi-book-plus</v-icon></v-list-item-icon>
                             <v-list-item-content><v-list-item-title>{{ $t('menu.borrowRegistration') }}</v-list-item-title></v-list-item-content>
                         </v-list-item>
@@ -213,6 +213,46 @@
             </v-card>
         </v-dialog>
 
+        <v-dialog v-model="borrowDialog" max-width="500" persistent>
+            <v-card>
+                <v-card-title class="text-h6 blue-grey darken-3 white--text">{{ $t('menu.borrowRegistration') }}</v-card-title>
+                <v-card-text class="pt-6">
+                    <v-alert
+                        :value="borrowAlert.show"
+                        :type="borrowAlert.type"
+                        dense
+                        text
+                        transition="scale-transition"
+                    >
+                        {{ borrowAlert.message }}
+                    </v-alert>
+                    <v-form @submit.prevent="submitBorrow">
+                        <v-text-field 
+                            v-model="borrowForm.tno" 
+                            :label="$t('fields.tno')" 
+                            prepend-icon="mdi-pound" 
+                            outlined 
+                            dense 
+                            ref="borrowTnoField"
+                        ></v-text-field>
+                        <v-text-field 
+                            v-model="borrowForm.userId" 
+                            :label="$t('borrowerId')" 
+                            prepend-icon="mdi-account" 
+                            outlined 
+                            dense
+                            @keyup.enter="submitBorrow"
+                        ></v-text-field>
+                    </v-form>
+                </v-card-text>
+                <v-card-actions class="pb-4 px-4">
+                    <v-spacer></v-spacer>
+                    <v-btn text color="grey darken-1" @click="closeBorrowDialog">{{ $t('close') }}</v-btn>
+                    <v-btn color="primary" :loading="borrowLoading" @click="submitBorrow">{{ $t('submit') }}</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+
     </v-app>
 </div>
 
@@ -240,6 +280,11 @@
             loginForm: { username: '', password: '' },
             logoutDialog: false,
             ws: null,
+            requests: new Map(),
+            borrowDialog: false,
+            borrowLoading: false,
+            borrowForm: { tno: '', userId: '' },
+            borrowAlert: { show: false, type: 'info', message: '' },
             currentLocale: i18n.locale
         },
         computed: {
@@ -391,6 +436,17 @@
                 this.isModalOpen = false;
                 setTimeout(() => { this.selectedBook = null; }, 300);
             },
+            openBorrowDialog() {
+                this.borrowAlert.show = false;
+                this.borrowForm = { tno: '', userId: '' };
+                this.borrowDialog = true;
+                this.$nextTick(() => {
+                    this.$refs.borrowTnoField.focus();
+                });
+            },
+            closeBorrowDialog() {
+                this.borrowDialog = false;
+            },
             formatKey(key) {
                 return this.$t(`fields.${key}`) || key;
             },
@@ -448,91 +504,143 @@
                 }
                 this.logoutDialog = false;
             },
-						async submitLogin() {
-                if (!this.loginForm.username || !this.loginForm.password) return;
-                this.isLoggingIn = true;
-
-                const baseWsUrl = localStorage.getItem("wsUrl");
-                if (!baseWsUrl) {
-                    alert("請先在 Console 設定 wsUrl！");
-                    this.isLoggingIn = false;
-                    return;
-                }
-                const apiUrl = baseWsUrl.replace('wss://', 'https://').replace('/ws', '/api/login');
-
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'ngrok-skip-browser-warning': 'true'
-                        },
-                        body: JSON.stringify({
-                            username: this.loginForm.username,
-                            password: this.loginForm.password
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errData = await response.json();
-                        alert("登入失敗：" + (errData.error || "未知錯誤"));
-                        this.isLoggingIn = false;
-                        return;
-                    }
-
-                    const data = await response.json();
-
-                    // --- 修改這裡：同時儲存 Token、帳號與權限 ---
-                    this.jwtToken = data.token;
-                    this.loggedInUser = this.loginForm.username; // 從表單拿帳號
-                    this.loggedInLevel = data.level;             // 從後端拿權限等級
-
-                    localStorage.setItem('lib_jwt', data.token);
-                    localStorage.setItem('lib_user', this.loggedInUser);
-                    localStorage.setItem('lib_level', this.loggedInLevel);
-                    // ----------------------------------------------
-
-                    this.isLoggingIn = false;
-                    this.closeLoginDialog();
-                    this.loginForm.username = '';
-                    this.loginForm.password = '';
-
-                    this.initSecureWebSocket();
-
-                } catch (error) {
-                    console.error("登入 API 呼叫失敗:", error);
-                    alert("無法連線到伺服器，請確認 Go 伺服器與 ngrok 是否執行中");
-                    this.isLoggingIn = false;
-                }
-            },
-
-            initSecureWebSocket() {
-                const baseUrl = localStorage.getItem("wsUrl");
-
-                // 將剛取得的真實 Token 附加在 WebSocket 網址後方的參數中
-                const wsUrl = `${baseUrl}?token=${this.jwtToken}`;
-
-                try {
-                    this.ws = new WebSocket(wsUrl);
-                    this.ws.onopen = () => console.log('WebSocket 安全連線已成功建立');
-                    this.ws.onmessage = (event) => {
-                        try {
-                            const data = JSON.parse(event.data);
-                            this.processRealTimeData(data);
-                        } catch (e) {
-                            console.error('解析 WebSocket 資料失敗:', e);
-                        }
-                    };
-                    this.ws.onerror = (error) => console.error('WebSocket 發生錯誤:', error);
-                    this.ws.onclose = () => console.log('WebSocket 連線已關閉');
-                } catch (err) {
-                    console.error('建立 WebSocket 連線失敗:', err);
-                }
-            },
-            processRealTimeData(data) {
-                console.log('接收到即時資料:', data);
-            }
-        }
+						            async submitLogin() {
+						                if (!this.loginForm.username || !this.loginForm.password) return;
+						                this.isLoggingIn = true;
+						
+						                const baseWsUrl = localStorage.getItem("wsUrl");
+						                if (!baseWsUrl) {
+						                    alert("請先在 Console 設定 wsUrl！");
+						                    this.isLoggingIn = false;
+						                    return;
+						                }
+						                const apiUrl = baseWsUrl.replace('wss://', 'https://').replace('/ws', '/api/login');
+						
+						                try {
+						                    const response = await fetch(apiUrl, {
+						                        method: 'POST',
+						                        headers: {
+						                            'Content-Type': 'application/json',
+						                            'ngrok-skip-browser-warning': 'true'
+						                        },
+						                        body: JSON.stringify({
+						                            username: this.loginForm.username,
+						                            password: this.loginForm.password
+						                        })
+						                    });
+						
+						                    if (!response.ok) {
+						                        const errData = await response.json();
+						                        alert("登入失敗：" + (errData.error || "未知錯誤"));
+						                        this.isLoggingIn = false;
+						                        return;
+						                    }
+						
+						                    const data = await response.json();
+						
+						                    // --- 修改這裡：同時儲存 Token、帳號與權限 ---
+						                    this.jwtToken = data.token;
+						                    this.loggedInUser = this.loginForm.username; // 從表單拿帳號
+						                    this.loggedInLevel = data.level;             // 從後端拿權限等級
+						
+						                    localStorage.setItem('lib_jwt', data.token);
+						                    localStorage.setItem('lib_user', this.loggedInUser);
+						                    localStorage.setItem('lib_level', this.loggedInLevel);
+						                    // ----------------------------------------------
+						
+						                    this.isLoggingIn = false;
+						                    this.closeLoginDialog();
+						                    this.loginForm.username = '';
+						                    this.loginForm.password = '';
+						
+						                    this.initSecureWebSocket();
+						
+						                } catch (error) {
+						                    console.error("登入 API 呼叫失敗:", error);
+						                    alert("無法連線到伺服器，請確認 Go 伺服器與 ngrok 是否執行中");
+						                    this.isLoggingIn = false;
+						                }
+						            },
+						
+						            submitBorrow() {
+						                this.borrowAlert.show = false;
+						                if (!this.borrowForm.tno || !this.borrowForm.userId) {
+						                    this.borrowAlert = { show: true, type: 'error', message: this.$t('fillAllFields') };
+						                    return;
+						                }
+						
+						                if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+						                    this.borrowAlert = { show: true, type: 'error', message: this.$t('wsNotConnected') };
+						                    return;
+						                }
+						                
+						                this.borrowLoading = true;
+						
+						                const requestId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+						
+						                const request = {
+						                    id: requestId,
+						                    endpoint: '/api/borrow',
+						                    payload: {
+						                        tno: this.borrowForm.tno,
+						                        userId: this.borrowForm.userId
+						                    }
+						                };
+						
+						                const timeout = setTimeout(() => {
+						                    this.requests.delete(requestId);
+						                    this.borrowLoading = false;
+						                    this.borrowAlert = { show: true, type: 'error', message: this.$t('requestTimeout') };
+						                }, 10000); // 10 second timeout
+						
+						                this.requests.set(requestId, (response) => {
+						                    clearTimeout(timeout);
+						                    this.borrowLoading = false;
+						                    if (response.success) {
+						                        this.borrowAlert = { show: true, type: 'success', message: this.$t('borrowRegistrationSuccess') };
+						                        this.borrowForm.tno = '';
+						                        this.borrowForm.userId = '';
+						                        this.$refs.borrowTnoField.focus();
+						                    } else {
+						                        this.borrowAlert = { show: true, type: 'error', message: `${this.$t('borrowRegistrationFailed')}: ${response.error}` };
+						                    }
+						                });
+						
+						                this.ws.send(JSON.stringify(request));
+						            },
+						
+						            initSecureWebSocket() {
+						                const baseUrl = localStorage.getItem("wsUrl");
+						
+						                // 將剛取得的真實 Token 附加在 WebSocket 網址後方的參數中
+						                const wsUrl = `${baseUrl}?token=${this.jwtToken}`;
+						
+						                try {
+						                    this.ws = new WebSocket(wsUrl);
+						                    this.ws.onopen = () => console.log('WebSocket 安全連線已成功建立');
+						                    this.ws.onmessage = (event) => {
+						                        try {
+						                            const data = JSON.parse(event.data);
+						                            if (data.id && this.requests.has(data.id)) {
+						                                const callback = this.requests.get(data.id);
+						                                callback(data);
+						                                this.requests.delete(data.id);
+						                            } else {
+						                                this.processRealTimeData(data);
+						                            }
+						                        } catch (e) {
+						                            console.error('解析 WebSocket 資料失敗:', e);
+						                        }
+						                    };
+						                    this.ws.onerror = (error) => console.error('WebSocket 發生錯誤:', error);
+						                    this.ws.onclose = () => console.log('WebSocket 連線已關閉');
+						                } catch (err) {
+						                    console.error('建立 WebSocket 連線失敗:', err);
+						                }
+						            },
+						            processRealTimeData(data) {
+						                console.log('接收到即時資料:', data);
+						            }        }
     });
 </script>
 </body>
