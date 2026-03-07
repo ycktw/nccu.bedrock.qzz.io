@@ -57,12 +57,54 @@
             </v-btn>
 
             <template v-else>
-                <span class="mr-4 text-body-2 grey--text text--lighten-1">
-                    {{ loggedInUser }}({{ loggedInLevel }}) 已登入
-                </span>
-                <v-btn
-                    outlined
-                    color="red lighten-2"
+                <v-menu offset-y>
+                    <template v-slot:activator="{ on, attrs }">
+                        <v-btn text v-bind="attrs" v-on="on" class="mr-2">
+                            <v-icon left>mdi-view-dashboard</v-icon>
+                            {{ $t('adminMenu') }}
+                            <v-icon right>mdi-menu-down</v-icon>
+                        </v-btn>
+                    </template>
+                    <v-list dense>
+                        <v-list-item link @click.stop="">
+                            <v-list-item-icon class="mr-3"><v-icon>mdi-book-plus</v-icon></v-list-item-icon>
+                            <v-list-item-content><v-list-item-title>{{ $t('menu.borrowRegistration') }}</v-list-item-title></v-list-item-content>
+                        </v-list-item>
+                        <v-list-item link @click.stop="">
+                            <v-list-item-icon class="mr-3"><v-icon>mdi-book-minus</v-icon></v-list-item-icon>
+                            <v-list-item-content><v-list-item-title>{{ $t('menu.returnRegistration') }}</v-list-item-title></v-list-item-content>
+                        </v-list-item>
+                        <v-list-item link @click.stop="">
+                            <v-list-item-icon class="mr-3"><v-icon>mdi-book-plus-multiple</v-icon></v-list-item-icon>
+                            <v-list-item-content><v-list-item-title>{{ $t('menu.newBook') }}</v-list-item-title></v-list-item-content>
+                        </v-list-item>
+                        <v-list-item link @click.stop="">
+                            <v-list-item-icon class="mr-3"><v-icon>mdi-chart-bar</v-icon></v-list-item-icon>
+                            <v-list-item-content><v-list-item-title>{{ $t('menu.unreturnedStats') }}</v-list-item-title></v-list-item-content>
+                        </v-list-item>
+                        <v-list-item link @click.stop="">
+                            <v-list-item-icon class="mr-3"><v-icon>mdi-account-cancel</v-icon></v-list-item-icon>
+                            <v-list-item-content><v-list-item-title>{{ $t('menu.blacklist') }}</v-list-item-title></v-list-item-content>
+                        </v-list-item>
+                        <v-list-item link @click.stop="">
+                            <v-list-item-icon class="mr-3"><v-icon>mdi-format-list-bulleted</v-icon></v-list-item-icon>
+                            <v-list-item-content><v-list-item-title>{{ $t('menu.collectionList') }}</v-list-item-title></v-list-item-content>
+                        </v-list-item>
+                        <v-list-item link @click.stop="">
+                            <v-list-item-icon class="mr-3"><v-icon>mdi-calendar-clock</v-icon></v-list-item-icon>
+                            <v-list-item-content><v-list-item-title>{{ $t('menu.openingDays') }}</v-list-item-title></v-list-item-content>
+                        </v-list-item>
+                        <v-list-item link @click.stop="">
+                            <v-list-item-icon class="mr-3"><v-icon>mdi-history</v-icon></v-list-item-icon>
+                            <v-list-item-content><v-list-item-title>{{ $t('menu.borrowHistory') }}</v-list-item-title></v-list-item-content>
+                        </v-list-item>
+                    </v-list>
+                </v-menu>
+
+                <span class="mr-4 text-body-2 grey--text text--lighten-1">{{ $t('loggedInStatus') }}</span>
+                <v-btn 
+                    outlined 
+                    color="red lighten-2" 
                     small
                     @click="logoutDialog = true"
                 >

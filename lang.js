@@ -16,6 +16,17 @@ const messages = {
         detailTitle: '書籍詳細資料',
         close: '關閉',
         confirmLogout: '您確定要登出系統管理嗎？',
+        adminMenu: '管理選單',
+        menu: {
+            borrowRegistration: '借書登記',
+            returnRegistration: '還書登記',
+            newBook: '新書入庫',
+            unreturnedStats: '未還統計',
+            blacklist: '禁借清單',
+            collectionList: '館藏清單',
+            openingDays: '開館日設定',
+            borrowHistory: '借閱歷史查詢'
+        },
         // 資料表欄位名稱
         fields: {
             tno: '索書號',
@@ -45,6 +56,17 @@ const messages = {
         detailTitle: 'Book Details',
         close: 'Close',
         confirmLogout: 'Are you sure you want to log out?',
+        adminMenu: 'Management',
+        menu: {
+            borrowRegistration: 'Borrow Registration',
+            returnRegistration: 'Return Registration',
+            newBook: 'New Book Entry',
+            unreturnedStats: 'Unreturned Stats',
+            blacklist: 'Blacklist',
+            collectionList: 'Collection List',
+            openingDays: 'Set Opening Days',
+            borrowHistory: 'Borrowing History'
+        },
         fields: {
             tno: 'Call No.',
             book_name: 'Title',
@@ -73,6 +95,17 @@ const messages = {
         detailTitle: '書籍詳細',
         close: '閉じる',
         confirmLogout: 'システムからログアウトしてもよろしいですか？',
+        adminMenu: '管理メニュー',
+        menu: {
+            borrowRegistration: '貸出登録',
+            returnRegistration: '返却登録',
+            newBook: '新刊登録',
+            unreturnedStats: '未返却統計',
+            blacklist: '利用禁止リスト',
+            collectionList: '蔵書リスト',
+            openingDays: '開館日設定',
+            borrowHistory: '貸出履歴照会'
+        },
         fields: {
             tno: '請求記号',
             book_name: '書名',
