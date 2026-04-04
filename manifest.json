@@ -1,0 +1,7 @@
+{
+  "name": "政大歷史系圖書查詢系統",
+  "short_name": "政大歷史系圖圖",
+  "start_url": "/",
+  "display": "standalone",
+  "gcm_sender_id": "103953800507" 
+}

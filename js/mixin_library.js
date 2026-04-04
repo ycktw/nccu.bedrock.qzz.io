@@ -191,12 +191,10 @@ const libraryMixin = {
             request.onerror = () => reject(request.error);
         });
     },
-    // 將 openModal 改為 async 函式以支援 fetch 的 await 呼叫
     async openModal(item) {
         this.selectedBook = Object.assign({}, item);
         this.isModalOpen = true;
 
-        // 【分流 1】：已登入且 WebSocket 正常連線時，走 WS 節省 HTTP 開銷
         if (this.isLoggedIn && this.ws && this.ws.readyState === WebSocket.OPEN) {
             const request = {
                 action: 'get_book',
@@ -213,10 +211,7 @@ const libraryMixin = {
             });
 
             this.ws.send(JSON.stringify(request));
-        
-        // 【分流 2】：未登入的訪客，透過公開的 HTTP API 取得資料
         } else {
-            // 處理 API 網址 (支援 HTTPS 與 HTTP)
             const defaultUrl = "wss://5517-60-248-186-181.ngrok-free.app/ws";
             const baseWsUrl = localStorage.getItem("wsUrl") || defaultUrl;
             const apiUrl = baseWsUrl.replace('wss://', 'https://').replace('ws://', 'http://').replace('/ws', '/api/book_status');
@@ -226,7 +221,7 @@ const libraryMixin = {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': 'true' // 如果走 ngrok 網域，需要這個 header 避免被攔截畫面
+                        'ngrok-skip-browser-warning': 'true'
                     },
                     body: JSON.stringify({ tno: item.tno })
                 });
@@ -236,75 +231,13 @@ const libraryMixin = {
                     if (result.success && result.data) {
                         this.updateBookStatusUI(result.data);
                     }
-                } else {
-                    console.warn("HTTP 狀態查詢失敗，代碼:", response.status);
                 }
             } catch (error) {
                 console.error("呼叫書籍狀態 API 發生例外錯誤:", error);
             }
         }
     },
-		// 在 mixin_library.js 的 methods 中新增
-		async subscribeToNotification(tno) {
-				// 1. 檢查瀏覽器是否支援
-				if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-						alert('您的瀏覽器不支援推播通知功能');
-						return;
-				}
-
-				try {
-						// 2. 要求通知權限
-						const permission = await Notification.requestPermission();
-						if (permission !== 'granted') {
-								alert('需要開啟通知權限才能接收歸還通知');
-								return;
-						}
-
-						// 3. 註冊 Service Worker
-						const registration = await navigator.serviceWorker.register('sw.js');
-						
-						// 4. 取得推播訂閱物件
-						// YOUR_VAPID_PUBLIC_KEY 需由 Go 後端產生提供
-						const vapidPublicKey = '這裡換成後端產生的 Base64 公鑰';
-						const subscription = await registration.pushManager.subscribe({
-								userVisibleOnly: true,
-								applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
-						});
-
-						// 5. 將訂閱資訊送到後端 (呼叫我們剛才設計的 MySQL 寫入邏輯)
-						const baseWsUrl = localStorage.getItem("wsUrl") || "wss://5517-60-248-186-181.ngrok-free.app/ws";
-						const apiUrl = baseWsUrl.replace('wss://', 'https://').replace('ws://', 'http://').replace('/ws', '/api/subscribe_notification');
-
-						const response = await fetch(apiUrl, {
-								method: 'POST',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify({
-										tno: tno,
-										subscription: subscription // 包含 endpoint, keys 等
-								})
-						});
-
-						if (response.ok) {
-								alert('訂閱成功！當書籍歸還時，您將會收到瀏覽器通知。');
-						}
-				} catch (error) {
-						console.error('訂閱過程發生錯誤:', error);
-				}
-		},
-
-		// 輔助函式：轉換 Base64 公鑰格式
-		urlBase64ToUint8Array(base64String) {
-				const padding = '='.repeat((4 - base64String.length % 4) % 4);
-				const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-				const rawData = window.atob(base64);
-				const outputArray = new Uint8Array(rawData.length);
-				for (let i = 0; i < rawData.length; ++i) {
-						outputArray[i] = rawData.charCodeAt(i);
-				}
-				return outputArray;
-		}
     
-    // 將更新畫面的邏輯獨立出來，讓 WS 和 API 都能共用
     updateBookStatusUI(data) {
         if (!data) return;
         
@@ -317,7 +250,6 @@ const libraryMixin = {
             }
         } else {
             this.$set(this.selectedBook, 'real_status', this.$t('status.available'));
-            // 如果從外借狀態變回在館內，要清空預期歸還日
             if (this.selectedBook.expected_return) {
                 this.$delete(this.selectedBook, 'expected_return');
             }
@@ -352,6 +284,66 @@ const libraryMixin = {
                 this.searchQuery = value;
             }
         }
+    },
+
+    // ==========================================
+    // Web Push 推播通知相關邏輯
+    // ==========================================
+    async subscribeToNotification(tno) {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            alert('您的瀏覽器不支援推播通知功能');
+            return;
+        }
+
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('需要開啟通知權限才能接收歸還通知');
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.register('sw.js');
+            
+            // 稍後在 Go 後端產生這把金鑰後，將它填入這裡
+            const vapidPublicKey = '這裡換成後端產生的_Base64_公鑰';
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
+            });
+
+            const baseWsUrl = localStorage.getItem("wsUrl") || "wss://5517-60-248-186-181.ngrok-free.app/ws";
+            const apiUrl = baseWsUrl.replace('wss://', 'https://').replace('ws://', 'http://').replace('/ws', '/api/subscribe_notification');
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tno: tno,
+                    subscription: subscription 
+                })
+            });
+
+            if (response.ok) {
+                alert('訂閱成功！當書籍歸還時，您將會收到瀏覽器通知。');
+            } else {
+                alert('訂閱請求失敗，請稍後再試。');
+            }
+        } catch (error) {
+            console.error('訂閱過程發生錯誤:', error);
+            alert('發生錯誤，無法完成訂閱。');
+        }
+    },
+
+    // 輔助函式：將 Base64 字串轉換為 Uint8Array
+    urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
     }
   }
 };
