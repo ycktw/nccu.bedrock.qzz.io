@@ -207,6 +207,8 @@
 					<v-card-title class="headline primary white--text pb-4">
 							<v-icon dark left>mdi-book-open-page-variant</v-icon>
 						{{ currentTableMode === 'blacklist' ? $t('blacklistDetailTitle') : $t('detailTitle') }}
+				</v-card-title>
+
 					<v-card-text class="pt-4">
 							<v-list dense>
 									<v-list-item v-for="(value, key) in selectedBook" :key="key" v-if="!isHiddenField(key)">
