@@ -57,6 +57,29 @@ const adminMixin = {
       adminForm: { id: '', nickname: '', level: 1, password: '' },
     };
   },
+  computed: {
+    identityOptions() {
+      const baseOptions = [
+        { text: this.$t('studentManage.identityType0'), value: '0' },
+        { text: this.$t('studentManage.identityType1'), value: '1' },
+        { text: this.$t('studentManage.identityType2'), value: '2' },
+        { text: this.$t('studentManage.identityType3'), value: '3' },
+      ];
+
+      const currentId = String(this.studentForm?.identification ?? '').trim();
+      if (!currentId) return baseOptions;
+
+      const exists = baseOptions.some((opt) => opt.value === currentId);
+      if (!exists) {
+        baseOptions.push({
+          text: `${this.$t('studentManage.identityTypeUnknown')} (${currentId})`,
+          value: currentId,
+        });
+      }
+
+      return baseOptions;
+    },
+  },
   methods: {
     openBorrowDialog() {
       this.borrowAlert.show = false;
@@ -632,6 +655,13 @@ const adminMixin = {
         this.studentFormVisible = false;
         setTimeout(() => { if (this.$refs.studentSearchIdField) this.$refs.studentSearchIdField.focus(); }, 200);
     },
+    openStudentManageWithId(st_no) {
+        this.closeModal();
+        this.studentManageDialog = true;
+        this.studentSearchId = st_no;
+        this.studentFormVisible = false;
+        this.$nextTick(() => { this.fetchStudent(); });
+    },
     fetchStudent() {
         if (!this.studentSearchId.trim()) return;
         this.studentLoading = true;
@@ -643,8 +673,12 @@ const adminMixin = {
             if (res.success && res.data) {
                 this.studentIsNew = false;
                 this.studentForm = {
-                    st_no: res.data.st_no, name: res.data.name, identification: res.data.identification,
-                    email: res.data.email, phone_a: res.data.phone_a, department: res.data.department
+                    st_no: res.data.st_no,
+                    name: res.data.name,
+                    identification: String(res.data.identification ?? '1'),
+                    email: res.data.email,
+                    phone_a: res.data.phone_a,
+                    department: res.data.department
                 };
             } else {
                 this.studentIsNew = true;
@@ -656,7 +690,11 @@ const adminMixin = {
     saveStudent() {
         if (!this.studentForm.st_no || !this.studentForm.name) { alert(this.$t('alerts.newBookRequired')); return; }
         this.studentLoading = true;
-        const request = { action: 'save_student', payload: this.studentForm };
+        const payload = {
+            ...this.studentForm,
+            identification: String(this.studentForm.identification ?? '1')
+        };
+        const request = { action: 'save_student', payload };
         this.requests.set('save_student', (res) => {
             this.studentLoading = false;
             if (res.success) {

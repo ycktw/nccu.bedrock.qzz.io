@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
@@ -206,9 +206,7 @@
 			<v-card v-if="selectedBook">
 					<v-card-title class="headline primary white--text pb-4">
 							<v-icon dark left>mdi-book-open-page-variant</v-icon>
-							{{ $t('detailTitle') }}
-					</v-card-title>
-
+						{{ currentTableMode === 'blacklist' ? $t('blacklistDetailTitle') : $t('detailTitle') }}
 					<v-card-text class="pt-4">
 							<v-list dense>
 									<v-list-item v-for="(value, key) in selectedBook" :key="key" v-if="!isHiddenField(key)">
@@ -218,11 +216,12 @@
 																	{{ formatKey(key) }}
 															</v-col>
 															<v-col cols="8" sm="9"
-																	class="text-wrap"
+																	class="text-wrap d-flex align-center"
 																	:class="{'pointer-link text-primary': isSearchableField(key)}"
 																	@click="handleDetailClick(key, value)"
 															>
-																	{{ value }}
+																	<span>{{ value }}</span>
+																	<v-btn v-if="key === 'st_no' && Number(loggedInLevel) > 1" icon x-small class="ml-1" :title="$t('studentManage.openProfile')" @click.stop="openStudentManageWithId(value)"><v-icon x-small>mdi-account-edit</v-icon></v-btn>
 															</v-col>
 													</v-row>
 											</v-list-item-content>

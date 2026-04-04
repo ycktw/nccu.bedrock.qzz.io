@@ -14,6 +14,7 @@ const messages = {
         totalText: '共',
         syncingText: '正在同步圖書資料...',
         detailTitle: '書籍詳細資料',
+        blacklistDetailTitle: '禁借清單內容',
         edit: '編輯',
 				lend_privilege: '外借權限 (即時)',
         login: '登入',
@@ -121,7 +122,13 @@ const messages = {
             update: '更新儲存',
             delete: '刪除帳號',
             confirmDelete: '確定要刪除此帳號嗎？系統將自動檢查未還書籍與罰金。',
-            notFound: '查無此帳號，您可以直接填寫下方資料來新增。'
+            notFound: '查無此帳號，您可以直接填寫下方資料來新增。',
+            identityType0: '測試',
+            identityType1: '大學部',
+            identityType2: '研究所',
+            identityType3: '教職員',
+            identityTypeUnknown: '未知分類',
+            openProfile: '開啟借書人帳號'
         },
         adminManage: {
             title: '工讀生帳號管理',
@@ -195,6 +202,7 @@ const messages = {
         totalText: 'Total',
         syncingText: 'Syncing library data...',
         detailTitle: 'Book Details',
+        blacklistDetailTitle: 'Blacklist Entry',
         edit: 'Edit',
 				lend_privilege: 'Lend Privilege (Live)',
         login: 'Login',
@@ -302,7 +310,13 @@ const messages = {
             update: 'Update & Save',
             delete: 'Delete Account',
             confirmDelete: 'Are you sure you want to delete this account? The system will check for unreturned books and fines.',
-            notFound: 'Account not found. You can fill in the details below to create a new one.'
+            notFound: 'Account not found. You can fill in the details below to create a new one.',
+            identityType0: 'Test',
+            identityType1: 'Undergraduate',
+            identityType2: 'Graduate',
+            identityType3: 'Faculty & Staff',
+            identityTypeUnknown: 'Unknown category',
+            openProfile: 'Open Student Profile'
         },
         adminManage: {
             title: 'Staff Account Management',
@@ -376,6 +390,7 @@ const messages = {
         totalText: '全',
         syncingText: '図書データを同期しています...',
         detailTitle: '書籍詳細',
+        blacklistDetailTitle: '禁借リスト内容',
         edit: '編集',
 				lend_privilege: '貸出権限 (即時)',
         login: 'ログイン',
@@ -483,7 +498,13 @@ const messages = {
             update: '更新して保存',
             delete: 'アカウント削除',
             confirmDelete: 'このアカウントを削除してもよろしいですか？システムは未返却の書籍と罰金を自動的に確認します。',
-            notFound: 'アカウントが見つかりません。以下のフォームに入力して新規作成できます。'
+            notFound: 'アカウントが見つかりません。以下のフォームに入力して新規作成できます。',
+            identityType0: 'テスト',
+            identityType1: '学部生',
+            identityType2: '大学院',
+            identityType3: '教職員',
+            identityTypeUnknown: '不明な分類',
+            openProfile: '借主アカウントを開く'
         },
         adminManage: {
             title: 'スタッフアカウント管理',
