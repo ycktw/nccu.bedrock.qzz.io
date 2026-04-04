@@ -244,6 +244,65 @@ const libraryMixin = {
             }
         }
     },
+		// 在 mixin_library.js 的 methods 中新增
+		async subscribeToNotification(tno) {
+				// 1. 檢查瀏覽器是否支援
+				if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+						alert('您的瀏覽器不支援推播通知功能');
+						return;
+				}
+
+				try {
+						// 2. 要求通知權限
+						const permission = await Notification.requestPermission();
+						if (permission !== 'granted') {
+								alert('需要開啟通知權限才能接收歸還通知');
+								return;
+						}
+
+						// 3. 註冊 Service Worker
+						const registration = await navigator.serviceWorker.register('sw.js');
+						
+						// 4. 取得推播訂閱物件
+						// YOUR_VAPID_PUBLIC_KEY 需由 Go 後端產生提供
+						const vapidPublicKey = '這裡換成後端產生的 Base64 公鑰';
+						const subscription = await registration.pushManager.subscribe({
+								userVisibleOnly: true,
+								applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
+						});
+
+						// 5. 將訂閱資訊送到後端 (呼叫我們剛才設計的 MySQL 寫入邏輯)
+						const baseWsUrl = localStorage.getItem("wsUrl") || "wss://5517-60-248-186-181.ngrok-free.app/ws";
+						const apiUrl = baseWsUrl.replace('wss://', 'https://').replace('ws://', 'http://').replace('/ws', '/api/subscribe_notification');
+
+						const response = await fetch(apiUrl, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+										tno: tno,
+										subscription: subscription // 包含 endpoint, keys 等
+								})
+						});
+
+						if (response.ok) {
+								alert('訂閱成功！當書籍歸還時，您將會收到瀏覽器通知。');
+						}
+				} catch (error) {
+						console.error('訂閱過程發生錯誤:', error);
+				}
+		},
+
+		// 輔助函式：轉換 Base64 公鑰格式
+		urlBase64ToUint8Array(base64String) {
+				const padding = '='.repeat((4 - base64String.length % 4) % 4);
+				const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+				const rawData = window.atob(base64);
+				const outputArray = new Uint8Array(rawData.length);
+				for (let i = 0; i < rawData.length; ++i) {
+						outputArray[i] = rawData.charCodeAt(i);
+				}
+				return outputArray;
+		}
     
     // 將更新畫面的邏輯獨立出來，讓 WS 和 API 都能共用
     updateBookStatusUI(data) {
