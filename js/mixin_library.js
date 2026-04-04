@@ -314,7 +314,7 @@ const libraryMixin = {
                 return;
             }
 
-            const registration = await navigator.serviceWorker.register('sw.js');
+            const registration = await navigator.serviceWorker.register('js/sw.js');
 
             // 稍後在 Go 後端產生這把金鑰後，將它填入這裡
             const vapidPublicKey = "BBBRXBftZ5WkgwVlZgRQKIsg_KFV3jKT13zytc40eGydIGkgETncHe5QLwG-mKgJI6iIYlyi0POQgF-wptyb-fU"
