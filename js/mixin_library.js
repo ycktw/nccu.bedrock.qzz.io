@@ -44,7 +44,7 @@ const libraryMixin = {
                 { text: this.$t('fields.note'), value: 'note', sortable: false }
             ];
         }
-        
+
         return [
             { text: this.$t('fields.tno'), value: 'tno', sortable: false },
             { text: this.$t('fields.book_name'), value: 'book_name', sortable: false },
@@ -56,10 +56,10 @@ const libraryMixin = {
   watch: {
     searchQuery(newQuery) {
         if (this.currentTableMode !== 'search') {
-            if (newQuery === '' || newQuery === null) return; 
+            if (newQuery === '' || newQuery === null) return;
             this.currentTableMode = 'search';
         }
-        
+
         this.page = 1;
         clearTimeout(this.searchDebounce);
         this.isLoading = true;
@@ -147,23 +147,23 @@ const libraryMixin = {
 
         const lowerCaseQuery = query.toLowerCase();
         const upperCaseQuery = query.toUpperCase();
-        
+
         const tx = this.db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
 
         const bookNameIndex = store.index('book_name_lower');
         const authorIndex = store.index('author_lower');
-        
+
         const range = IDBKeyRange.bound(lowerCaseQuery, lowerCaseQuery + '\uffff');
-        
+
         const tnoRangeOriginal = IDBKeyRange.bound(query, query + '\uffff');
         const tnoRangeUpper = IDBKeyRange.bound(upperCaseQuery, upperCaseQuery + '\uffff');
 
         const bookNamePromise = this.promisifyRequest(bookNameIndex.getAll(range));
         const authorPromise = this.promisifyRequest(authorIndex.getAll(range));
         const tnoPromiseOriginal = this.promisifyRequest(store.getAll(tnoRangeOriginal));
-        const tnoPromiseUpper = (query !== upperCaseQuery) 
-            ? this.promisifyRequest(store.getAll(tnoRangeUpper)) 
+        const tnoPromiseUpper = (query !== upperCaseQuery)
+            ? this.promisifyRequest(store.getAll(tnoRangeUpper))
             : Promise.resolve([]);
 
         try {
@@ -172,7 +172,7 @@ const libraryMixin = {
             ]);
 
             const results = new Map();
-            
+
             tnoResultsOrg.forEach(book => results.set(book.tno, book));
             tnoResultsUp.forEach(book => results.set(book.tno, book));
             bookNameResults.forEach(book => results.set(book.tno, book));
@@ -237,12 +237,12 @@ const libraryMixin = {
             }
         }
     },
-    
+
     updateBookStatusUI(data) {
         if (!data) return;
-        
+
         this.$set(this.selectedBook, 'real_lendable', data.is_lendable ? this.$t('status.lendable') : this.$t('status.notLendable'));
-        
+
         if (data.is_borrowed) {
             this.$set(this.selectedBook, 'real_status', this.$t('status.borrowed'));
             if (data.expected_return_time) {
@@ -255,7 +255,7 @@ const libraryMixin = {
             }
         }
     },
-    
+
     closeModal() {
         this.isModalOpen = false;
         setTimeout(() => { this.selectedBook = null; }, 300);
@@ -269,15 +269,15 @@ const libraryMixin = {
         }
         return key === 'book_name' || key === 'author' || key === 'tno';
     },
-    
+
     isHiddenField(key) {
         return ['book_name_lower', 'author_lower'].includes(key);
     },
-    
+
     handleDetailClick(key, value) {
         if (this.isSearchableField(key) && value) {
             this.closeModal();
-            
+
             if (key === 'st_no') {
                 this.fetchUnreturnedStats(value);
             } else {
@@ -303,9 +303,9 @@ const libraryMixin = {
             }
 
             const registration = await navigator.serviceWorker.register('sw.js');
-            
+
             // 稍後在 Go 後端產生這把金鑰後，將它填入這裡
-            const vapidPublicKey = '這裡換成後端產生的_Base64_公鑰';
+            const vapidPublicKey = "BBBRXBftZ5WkgwVlZgRQKIsg_KFV3jKT13zytc40eGydIGkgETncHe5QLwG-mKgJI6iIYlyi0POQgF-wptyb-fU"
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
@@ -319,7 +319,7 @@ const libraryMixin = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tno: tno,
-                    subscription: subscription 
+                    subscription: subscription
                 })
             });
 
