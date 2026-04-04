@@ -264,18 +264,26 @@ const libraryMixin = {
         this.isModalOpen = false;
         setTimeout(() => { this.selectedBook = null; }, 300);
     },
-    formatKey(key) {
+		formatKey(key) {
+        // 幫即時狀態欄位加上明確的中文標題，避免顯示英文 key
+        if (key === 'real_lendable') return '可否外借 (即時)';
+        if (key === 'real_status') return '目前借閱狀態';
+        if (key === 'expected_return') return '預計歸還時間';
+
         return this.$t(`fields.${key}`) || key;
+    },
+
+    isHiddenField(key) {
+        // 隱藏容易讓使用者混淆的原始資料庫欄位
+        // 把 lend 與 state 系列的原始資料過濾掉，只留 real_status 給使用者看
+        const hidden = ['book_name_lower', 'author_lower', 'lend', 'state', 'Lend', 'State'];
+        return hidden.includes(key);
     },
     isSearchableField(key) {
         if (key === 'st_no') {
             return Number(this.loggedInLevel) >= 1;
         }
         return key === 'book_name' || key === 'author' || key === 'tno';
-    },
-
-    isHiddenField(key) {
-        return ['book_name_lower', 'author_lower'].includes(key);
     },
 
     handleDetailClick(key, value) {
