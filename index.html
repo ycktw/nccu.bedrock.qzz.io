@@ -86,12 +86,12 @@
 												<v-list-item-icon class="mr-3"><v-icon>mdi-book-plus-multiple</v-icon></v-list-item-icon>
 												<v-list-item-content><v-list-item-title>{{ $t('menu.newBook') || '新書入庫' }}</v-list-item-title></v-list-item-content>
 										</v-list-item>
-										
+
 										<v-list-item link @click.stop="fetchUnreturnedStats">
 												<v-list-item-icon class="mr-3"><v-icon>mdi-chart-bar</v-icon></v-list-item-icon>
 												<v-list-item-content><v-list-item-title>{{ $t('menu.unreturnedStats') || '未還統計' }}</v-list-item-title></v-list-item-content>
 										</v-list-item>
-										
+
 										<v-list-item link @click.stop="fetchBlacklist">
 												<v-list-item-icon class="mr-3"><v-icon>mdi-account-cancel</v-icon></v-list-item-icon>
 												<v-list-item-content><v-list-item-title>{{ $t('menu.blacklist') || '黑名單管理' }}</v-list-item-title></v-list-item-content>
@@ -119,17 +119,17 @@
 								</v-list>
 						</v-menu>
 
-						<span 
-								class="mr-4 text-body-2 grey--text text--lighten-1 pointer-link" 
+						<span
+								class="mr-4 text-body-2 grey--text text--lighten-1 pointer-link"
 								@click="openProfileDialog"
 								:title="$t('profile.title')"
 						>
 								{{ loggedInUser }}({{ loggedInLevel }}) {{ $t('loggedInStatus') }}
 						</span>
-						
-						<v-btn 
-								outlined 
-								color="red lighten-2" 
+
+						<v-btn
+								outlined
+								color="red lighten-2"
 								small
 								@click="logoutDialog = true"
 						>
@@ -208,26 +208,31 @@
 							<v-icon dark left>mdi-book-open-page-variant</v-icon>
 							{{ $t('detailTitle') }}
 					</v-card-title>
-					
+
 					<v-card-text class="pt-4">
 							<v-list dense>
 									<v-list-item v-for="(value, key) in selectedBook" :key="key" v-if="!isHiddenField(key)">
 											<v-list-item-content>
-													<v-list-item-title class="font-weight-bold">{{ formatKey(key) }}</v-list-item-title>
-													<v-list-item-subtitle 
-															:class="{'pointer-link text-primary': isSearchableField(key)}"
-															@click="handleDetailClick(key, value)"
-													>
-															{{ value }}
-													</v-list-item-subtitle>
+													<v-row no-gutters align="start">
+															<v-col cols="4" sm="3" class="font-weight-bold grey--text text--darken-2">
+																	{{ formatKey(key) }}
+															</v-col>
+															<v-col cols="8" sm="9"
+																	class="text-wrap"
+																	:class="{'pointer-link text-primary': isSearchableField(key)}"
+																	@click="handleDetailClick(key, value)"
+															>
+																	{{ value }}
+															</v-col>
+													</v-row>
 											</v-list-item-content>
 									</v-list-item>
 
 									<v-list-item v-if="selectedBook && selectedBook.real_status === $t('status.borrowed')">
-											<v-list-item-content>
-													<v-btn 
-															color="primary" 
-															outlined 
+											<v-list-item-content class="pt-4">
+													<v-btn
+															color="primary"
+															outlined
 															block
 															@click="subscribeToNotification(selectedBook.tno)"
 													>
@@ -238,7 +243,7 @@
 									</v-list-item>
 									</v-list>
 					</v-card-text>
-					
+
 					<v-card-actions class="pb-4 px-4 grey lighten-4">
 							<v-btn v-if="Number(loggedInLevel) >= 1" color="primary" text @click="openEditBookDialog(selectedBook)">
 									<v-icon left>mdi-pencil</v-icon> {{ $t('edit') }}
@@ -283,29 +288,29 @@
 								<v-alert :value="profileAlert.show" :type="profileAlert.type" dense text transition="scale-transition">
 										{{ profileAlert.message }}
 								</v-alert>
-								
+
 								<v-form @submit.prevent="submitPasswordChange">
 										<v-text-field v-model="profileForm.id" :label="$t('profile.id')" readonly disabled outlined dense></v-text-field>
 										<v-text-field v-model="profileForm.nickname" :label="$t('profile.nickname')" readonly disabled outlined dense></v-text-field>
 										<v-text-field v-model="profileForm.level" :label="$t('profile.level')" readonly disabled outlined dense></v-text-field>
 										<v-text-field v-model="profileForm.login_ip" :label="$t('profile.loginIp')" readonly disabled outlined dense></v-text-field>
-										
+
 										<v-divider class="my-4"></v-divider>
 										<div class="text-subtitle-1 mb-2 font-weight-bold">{{ $t('profile.changePassword') }}</div>
 										<div class="text-caption grey--text mb-4">{{ $t('profile.passwordHint') }}</div>
 
-										<v-text-field 
-												v-if="Number(loggedInLevel) >= 3" 
-												v-model="profileForm.target_id" 
-												:label="$t('profile.targetId')" 
+										<v-text-field
+												v-if="Number(loggedInLevel) >= 3"
+												v-model="profileForm.target_id"
+												:label="$t('profile.targetId')"
 												prepend-inner-icon="mdi-account-edit"
-												outlined 
+												outlined
 												dense
 												:hint="$t('profile.targetIdHint')"
 												persistent-hint
 												class="mb-3"
 										></v-text-field>
-										
+
 										<v-text-field v-model="profileForm.newPassword" :label="$t('profile.newPassword')" type="password" outlined dense></v-text-field>
 										<v-text-field v-model="profileForm.confirmPassword" :label="$t('profile.confirmPassword')" type="password" outlined dense @keyup.enter="submitPasswordChange"></v-text-field>
 								</v-form>
@@ -399,12 +404,12 @@
 			<v-card>
 					<v-card-title class="text-h6 blue-grey darken-3 white--text">{{ $t('menu.borrowHistory') || '借閱歷史查詢' }}</v-card-title>
 					<v-card-text class="pt-6">
-							<v-text-field 
-									v-model="borrowHistoryStId" 
-									:label="$t('fields.st_no') || '借書人學號'" 
-									prepend-icon="mdi-account-search" 
-									outlined 
-									dense 
+							<v-text-field
+									v-model="borrowHistoryStId"
+									:label="$t('fields.st_no') || '借書人學號'"
+									prepend-icon="mdi-account-search"
+									outlined
+									dense
 									@keyup.enter="fetchBorrowHistory"
 									ref="borrowHistoryStIdField"
 							></v-text-field>
@@ -435,11 +440,11 @@
                                 full-width
                             ></v-date-picker>
                         </v-col>
-                        
+
                         <v-col cols="12" md="6">
                             <div v-if="opendaySelectedDate">
                                 <h3 class="mb-4 primary--text">{{ opendaySelectedDate }} {{ $t('openday.setting') }}</h3>
-                                
+
                                 <v-radio-group v-model="opendayCurrentForm.status" row>
                                     <v-radio :label="$t('openday.open')" value="open" color="green"></v-radio>
                                     <v-radio :label="$t('openday.close')" value="close" color="red"></v-radio>
@@ -496,7 +501,7 @@
 												<v-btn color="primary" block @click="fetchStudent"><v-icon left>mdi-magnify</v-icon>{{ $t('search') || '查詢' }}</v-btn>
 										</v-col>
 								</v-row>
-								
+
 								<v-divider class="mb-4" v-if="studentFormVisible"></v-divider>
 
 								<v-form v-if="studentFormVisible">
@@ -505,13 +510,13 @@
 												<v-col cols="12" md="6"><v-text-field v-model="studentForm.st_no" :label="$t('fields.st_no') || '學號'" disabled outlined dense></v-text-field></v-col>
 												<v-col cols="12" md="6"><v-text-field v-model="studentForm.name" :label="$t('fields.name') || '姓名 (必填)'" outlined dense></v-text-field></v-col>
 												<v-col cols="12" md="6">
-														<v-select 
-																v-model="studentForm.identification" 
-																:items="identityOptions" 
-																item-text="text" 
-																item-value="value" 
-																:label="$t('fields.category') || '身分'" 
-																outlined 
+														<v-select
+																v-model="studentForm.identification"
+																:items="identityOptions"
+																item-text="text"
+																item-value="value"
+																:label="$t('fields.category') || '身分'"
+																outlined
 																dense>
 														</v-select>
 												</v-col>
@@ -583,7 +588,7 @@
 											<v-btn color="primary" block @click="fetchAdmin"><v-icon left>mdi-magnify</v-icon>{{ $t('search') }}</v-btn>
 									</v-col>
 							</v-row>
-							
+
 							<v-divider class="mb-4" v-if="adminFormVisible"></v-divider>
 
 							<v-form v-if="adminFormVisible">
@@ -592,11 +597,11 @@
 											<v-col cols="12" md="6"><v-text-field v-model="adminForm.id" label="帳號" disabled outlined dense></v-text-field></v-col>
 											<v-col cols="12" md="6"><v-text-field v-model="adminForm.nickname" label="暱稱" outlined dense></v-text-field></v-col>
 											<v-col cols="12" md="6">
-													<v-select 
+													<v-select
 															v-model="adminForm.level"
 															:items="[0, 1, 2]"
-															label="權限等級" 
-															outlined 
+															label="權限等級"
+															outlined
 															dense>
 													</v-select>
 											</v-col>
