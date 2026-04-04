@@ -22,6 +22,21 @@ window.app = new Vue({
         window.removeEventListener('beforeunload', this.handleBeforeUnload);
     },
     methods: {
+        closeAllDialogs() {
+            if (this.isModalOpen) this.closeModal();
+            if (this.loginDialog) this.closeLoginDialog();
+            if (this.borrowDialog) this.closeBorrowDialog();
+            if (this.returnDialog) this.closeReturnDialog();
+            if (this.newBookDialog) this.closeNewBookDialog();
+            if (this.profileDialog) this.closeProfileDialog();
+
+            this.logoutDialog = false;
+            this.borrowHistoryDialog = false;
+            this.opendayDialog = false;
+            this.studentManageDialog = false;
+            this.editBookDialog = false;
+            this.adminManageDialog = false;
+        },
         handleBeforeUnload(e) {
             // 如果已登入，防止使用者不小心關閉分頁或重整導致斷線
             if (this.isLoggedIn) {
@@ -31,21 +46,16 @@ window.app = new Vue({
         },
         handleKeydown(e) {
 						if (e.key === 'Escape') {
-							// ... (前面省略)
-							if (this.isModalOpen) this.closeModal();
-							if (this.studentManageDialog) this.studentManageDialog = false;
-							if (this.editBookDialog) this.editBookDialog = false;
-							if (this.adminManageDialog) this.adminManageDialog = false; // 👈 補上這行
-							return; 
+							this.closeAllDialogs();
+							return;
 						}
 
 						// 2. 判斷目前是否有任何對話框開啟
-						const isAnyDialogOpen = this.isModalOpen || this.loginDialog || this.logoutDialog || 
-																	this.borrowDialog || this.returnDialog || this.newBookDialog || 
-																	this.profileDialog || this.borrowHistoryDialog || 
-																	this.opendayDialog || this.studentManageDialog ||
-																	this.editBookDialog || 
-																	this.adminManageDialog; // 👈 補上這行
+                        const isAnyDialogOpen = this.isModalOpen || this.loginDialog || this.logoutDialog ||
+                                                            this.borrowDialog || this.returnDialog || this.newBookDialog ||
+                                                            this.profileDialog || this.borrowHistoryDialog ||
+                                                            this.opendayDialog || this.studentManageDialog ||
+                                                            this.editBookDialog || this.adminManageDialog;
 																	
 						const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
             const isUserTyping = activeTag === 'input' || activeTag === 'textarea';

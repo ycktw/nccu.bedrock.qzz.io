@@ -202,7 +202,7 @@
 				</div>
 		</v-overlay>
 
-		<v-dialog v-model="isModalOpen" max-width="600" @click:outside="closeModal">
+		<v-dialog v-model="isModalOpen" max-width="600" @click:outside="closeAllDialogs">
 			<v-card v-if="selectedBook">
 					<v-card-title class="headline primary white--text pb-4">
 							<v-icon dark left>mdi-book-open-page-variant</v-icon>
@@ -254,7 +254,7 @@
 			</v-card>
 		</v-dialog>
 
-		<v-dialog v-model="loginDialog" max-width="400" persistent @keydown.esc="closeLoginDialog">
+		<v-dialog v-model="loginDialog" max-width="400" @click:outside="closeAllDialogs" @keydown.esc="closeAllDialogs">
 				<v-card>
 						<v-card-title class="text-h6 blue-grey darken-3 white--text">{{ $t('sysAdmin') }}</v-card-title>
 						<v-card-text class="pt-6">
@@ -269,7 +269,7 @@
 				</v-card>
 		</v-dialog>
 
-		<v-dialog v-model="logoutDialog" max-width="350">
+		<v-dialog v-model="logoutDialog" max-width="350" @click:outside="closeAllDialogs">
 				<v-card>
 						<v-card-title class="text-h6">{{ $t('confirm') }}</v-card-title>
 						<v-card-text class="pt-2 text-body-1">{{ $t('confirmLogout') }}</v-card-text>
@@ -281,7 +281,7 @@
 				</v-card>
 		</v-dialog>
 
-		<v-dialog v-model="profileDialog" max-width="500" persistent>
+		<v-dialog v-model="profileDialog" max-width="500" @click:outside="closeAllDialogs">
 				<v-card>
 						<v-card-title class="text-h6 blue-grey darken-3 white--text">{{ $t('profile.title') }}</v-card-title>
 						<v-card-text class="pt-6">
@@ -323,7 +323,7 @@
 				</v-card>
 		</v-dialog>
 
-		<v-dialog v-model="borrowDialog" max-width="500" persistent>
+		<v-dialog v-model="borrowDialog" max-width="500" @click:outside="closeAllDialogs">
 				<v-card>
 						<v-card-title class="text-h6 blue-grey darken-3 white--text">{{ $t('menu.borrowRegistration') }}</v-card-title>
 						<v-card-text class="pt-6">
@@ -343,7 +343,7 @@
 				</v-card>
 		</v-dialog>
 
-		<v-dialog v-model="returnDialog" max-width="500" persistent>
+		<v-dialog v-model="returnDialog" max-width="500" @click:outside="closeAllDialogs">
 				<v-card>
 						<v-card-title class="text-h6 blue-grey darken-3 white--text">{{ $t('menu.returnRegistration') }}</v-card-title>
 						<v-card-text class="pt-6">
@@ -363,7 +363,7 @@
 				</v-card>
 		</v-dialog>
 
-		<v-dialog v-model="newBookDialog" max-width="800" persistent>
+		<v-dialog v-model="newBookDialog" max-width="800" @click:outside="closeAllDialogs">
 				<v-card>
 						<v-card-title class="text-h6 blue-grey darken-3 white--text">{{ $t('menu.newBook') }}</v-card-title>
 						<v-card-text class="pt-6">
@@ -400,7 +400,7 @@
 				</v-card>
 		</v-dialog>
 
-		<v-dialog v-model="borrowHistoryDialog" max-width="400">
+		<v-dialog v-model="borrowHistoryDialog" max-width="400" @click:outside="closeAllDialogs">
 			<v-card>
 					<v-card-title class="text-h6 blue-grey darken-3 white--text">{{ $t('menu.borrowHistory') }}</v-card-title>
 					<v-card-text class="pt-6">
@@ -422,7 +422,7 @@
 			</v-card>
 		</v-dialog>
 
-		<v-dialog v-model="opendayDialog" max-width="700">
+		<v-dialog v-model="opendayDialog" max-width="700" @click:outside="closeAllDialogs">
             <v-card>
                 <v-card-title class="text-h6 blue-grey darken-3 white--text">
                     <v-icon dark class="mr-2">mdi-calendar-edit</v-icon>
@@ -486,7 +486,7 @@
             </v-card>
 		</v-dialog>
 
-		<v-dialog v-model="studentManageDialog" max-width="600">
+		<v-dialog v-model="studentManageDialog" max-width="600" @click:outside="closeAllDialogs">
 				<v-card>
 						<v-card-title class="text-h6 blue-grey darken-3 white--text">
 								<v-icon dark class="mr-2">mdi-account-cog</v-icon>
@@ -538,7 +538,7 @@
 				</v-card>
 		</v-dialog>
 
-		<v-dialog v-model="editBookDialog" max-width="600" persistent>
+		<v-dialog v-model="editBookDialog" max-width="600" @click:outside="closeAllDialogs">
 				<v-card>
 						<v-card-title class="text-h6 blue-grey darken-3 white--text">
 								<v-icon dark class="mr-2">mdi-book-edit</v-icon>
@@ -573,7 +573,7 @@
 				</v-card>
 		</v-dialog>
 
-		<v-dialog v-model="adminManageDialog" max-width="600">
+		<v-dialog v-model="adminManageDialog" max-width="600" @click:outside="closeAllDialogs">
 			<v-card>
 					<v-card-title class="text-h6 blue-grey darken-3 white--text">
 							<v-icon dark class="mr-2">mdi-account-supervisor</v-icon>
