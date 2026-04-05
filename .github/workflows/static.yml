@@ -33,6 +33,12 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      - name: Inject Git hash into footer
+        run: |
+          SHORT_SHA="$(git rev-parse --short HEAD)"
+          DEPLOY_TIME="$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          sed -i "s/__APP_GIT_HASH__/${SHORT_SHA}/g" index.html
+          sed -i "s/__APP_DEPLOY_TIME__/${DEPLOY_TIME}/g" index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

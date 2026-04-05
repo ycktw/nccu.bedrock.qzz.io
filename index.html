@@ -18,6 +18,10 @@
     <script src="js/mixin_auth.js" defer></script>
     <script src="js/mixin_library.js" defer></script>
     <script src="js/mixin_admin.js" defer></script>
+	<script>
+		window.__APP_GIT_HASH__ = '__APP_GIT_HASH__';
+		window.__APP_DEPLOY_TIME__ = '__APP_DEPLOY_TIME__';
+	</script>
     <script src="apps.js" defer></script>
 
     <style>
@@ -629,7 +633,8 @@
 		<v-footer color="transparent" class="justify-center mt-8 mb-4" padless>
 			<div class="text-center text-caption grey--text text--darken-1" style="line-height: 1.8;">
 				{{ $t('footer.recommendation') }}<br/>
-				{{ $t('footer.copyright') }}
+				{{ $t('footer.copyright') }}<br/>
+				Git: {{ gitHash }} | Deploy: {{ deployTime }}
 			</div>
 		</v-footer>
 	</v-app>
