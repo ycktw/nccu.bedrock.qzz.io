@@ -6,8 +6,8 @@ window.app = new Vue({
     i18n,
     data: {
         currentLocale: i18n.locale,
-        gitHash: (window.__APP_GIT_HASH__ && window.__APP_GIT_HASH__ !== '__APP_GIT_HASH__') ? window.__APP_GIT_HASH__ : 'dev',
-        deployTime: (window.__APP_DEPLOY_TIME__ && window.__APP_DEPLOY_TIME__ !== '__APP_DEPLOY_TIME__') ? window.__APP_DEPLOY_TIME__ : 'local',
+        gitHash: (window.__APP_GIT_HASH__ && window.__APP_GIT_HASH__ !== '__APP_GIT_HASH_VALUE__') ? window.__APP_GIT_HASH__ : 'dev',
+        deployTime: (window.__APP_DEPLOY_TIME__ && window.__APP_DEPLOY_TIME__ !== '__APP_DEPLOY_TIME_VALUE__') ? window.__APP_DEPLOY_TIME__ : 'local',
     },
     watch: {
         currentLocale(newLang) {
