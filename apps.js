@@ -140,3 +140,56 @@ window.app = new Vue({
     }
 });
 
+async function logStorageStatus() {
+    // 1. Cache Storage
+    if ('caches' in window) {
+        const cacheKeys = await caches.keys();
+        for (const key of cacheKeys) {
+            const cache = await caches.open(key);
+            const requests = await cache.keys();
+            console.log(`[CacheStorage] "${key}" 有 ${requests.length} 筆`);
+        }
+        if (cacheKeys.length === 0) {
+            console.log('[CacheStorage] 無任何快取');
+        }
+    } else {
+        console.log('[CacheStorage] 不支援');
+    }
+
+    // 2. IndexedDB
+    if ('indexedDB' in window) {
+        if (indexedDB.databases) {
+            // 新版瀏覽器支援
+            const dbs = await indexedDB.databases();
+            if (dbs.length === 0) {
+                console.log('[IndexedDB] 無任何資料庫');
+            } else {
+                dbs.forEach(db => {
+                    console.log(`[IndexedDB] 資料庫名稱: ${db.name}, 版本: ${db.version}`);
+                });
+            }
+        } else {
+            console.log('[IndexedDB] 無法列出所有資料庫（瀏覽器不支援 indexedDB.databases）');
+        }
+    } else {
+        console.log('[IndexedDB] 不支援');
+    }
+
+    // 3. localStorage & sessionStorage
+    function calcStorageSize(storage, label) {
+        let total = 0, count = 0;
+        for (let i = 0; i < storage.length; i++) {
+            const key = storage.key(i);
+            const value = storage.getItem(key);
+            total += (key.length + value.length) * 2; // 2 bytes per char
+            count++;
+        }
+        console.log(`[${label}] 共 ${count} 筆，約 ${(total / 1024).toFixed(2)} KB`);
+    }
+    if ('localStorage' in window) {
+        calcStorageSize(localStorage, 'localStorage');
+    }
+    if ('sessionStorage' in window) {
+        calcStorageSize(sessionStorage, 'sessionStorage');
+    }
+}
