@@ -183,6 +183,40 @@ const authMixin = {
     },
     processRealTimeData(data) {
         console.log('接收到即時資料:', data);
+        
+        // 處理 library 數據刷新通知
+        if (data.action === 'refresh_library_data' && data.data && data.data.db_version) {
+            console.log(`📢 收到 DB_VERSION ${data.data.db_version} 的更新通知，自動重載 IndexedDB...`);
+            this.autoRefreshLibraryDB(data.data.db_version);
+        }
+    },
+    
+    // 自動清除並重新初始化 IndexedDB
+    async autoRefreshLibraryDB(newDBVersion) {
+        try {
+            // 1. 清除舊的 localStorage 版本記錄
+            localStorage.removeItem('lib_version');
+            
+            // 2. 刪除舊的 IndexedDB
+            const deleteReq = indexedDB.deleteDatabase('lib');
+            
+            deleteReq.onsuccess = async () => {
+                console.log('✓ 已清除舊的 IndexedDB');
+                
+                // 3. 重新初始化 IndexedDB
+                if (this.$root.$children[0] && this.$root.$children[0].initLibraryDB) {
+                    await this.$root.$children[0].initLibraryDB(() => {});
+                    console.log('✓ 已重新初始化 IndexedDB');
+                    console.log(`✓ DB_VERSION 已更新至 ${newDBVersion}`);
+                }
+            };
+            
+            deleteReq.onerror = () => {
+                console.error('❌ 刪除 IndexedDB 失敗:', deleteReq.error);
+            };
+        } catch (error) {
+            console.error('自動刷新 IndexedDB 失敗:', error);
+        }
     },
   },
 };
