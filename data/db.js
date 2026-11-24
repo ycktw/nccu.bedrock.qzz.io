@@ -1,5 +1,5 @@
 const DB_NAME = 'lib';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const STORE_NAME = 'books';
 const VERSION_URL = './data/version.js'; 
 const DATA_URL = './data/library.json';
